@@ -1,0 +1,52 @@
+{
+  "manifest_version": 3,
+  "name": "VidPulse",
+  "version": "1.0.0",
+  "description": "AI-powered YouTube video analysis - know if it's worth your time before watching",
+
+  "permissions": [
+    "storage",
+    "activeTab",
+    "tabs",
+    "scripting"
+  ],
+
+  "host_permissions": [
+    "https://www.youtube.com/*",
+    "https://generativelanguage.googleapis.com/*",
+    "https://api.search.brave.com/*"
+  ],
+
+  "background": {
+    "service_worker": "src/background/service-worker.ts",
+    "type": "module"
+  },
+
+  "content_scripts": [{
+    "matches": ["https://www.youtube.com/*"],
+    "js": ["src/content/index.ts"],
+    "run_at": "document_idle"
+  }],
+
+  "options_page": "src/options/index.html",
+
+  "action": {
+    "default_title": "VidPulse",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+
+  "web_accessible_resources": [{
+    "resources": ["assets/*"],
+    "matches": ["https://www.youtube.com/*"]
+  }]
+}

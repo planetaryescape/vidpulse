@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VidPulse Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --vp-bg-dark: #0f0f0f;
+      --vp-bg-card: #1a1a1a;
+      --vp-bg-elevated: #262626;
+      --vp-text-primary: #f5f5f5;
+      --vp-text-secondary: #a3a3a3;
+      --vp-accent: #f59e0b;
+      --vp-accent-dim: #78350f;
+      --vp-border: #333333;
+      --vp-score-high: #22c55e;
+      --vp-error: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--vp-bg-dark);
+      color: var(--vp-text-primary);
+      height: 100vh;
+      overflow: hidden;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 40px 40px 0 40px;
+    }
+
+    header {
+      flex-shrink: 0;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-family: 'Crimson Pro', serif;
+      font-size: 2.5rem;
+      font-weight: 600;
+      color: var(--vp-accent);
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: var(--vp-text-secondary);
+      font-size: 0.875rem;
+    }
+
+    .card {
+      background: var(--vp-bg-card);
+      border: 1px solid var(--vp-border);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .card-title {
+      font-family: 'Crimson Pro', serif;
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--vp-text-primary);
+    }
+
+    label {
+      display: block;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--vp-text-secondary);
+      margin-bottom: 8px;
+    }
+
+    input[type="password"],
+    input[type="text"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 12px;
+      background: var(--vp-bg-elevated);
+      border: 1px solid var(--vp-border);
+      border-radius: 4px;
+      color: var(--vp-text-primary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.875rem;
+      margin-bottom: 16px;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--vp-accent);
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .toggle-label {
+      font-size: 0.875rem;
+      color: var(--vp-text-primary);
+    }
+
+    .toggle {
+      position: relative;
+      width: 48px;
+      height: 24px;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--vp-bg-elevated);
+      border: 1px solid var(--vp-border);
+      border-radius: 24px;
+      transition: 0.3s;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 2px;
+      bottom: 2px;
+      background: var(--vp-text-secondary);
+      border-radius: 50%;
+      transition: 0.3s;
+    }
+
+    .toggle input:checked + .toggle-slider {
+      background: var(--vp-accent-dim);
+      border-color: var(--vp-accent);
+    }
+
+    .toggle input:checked + .toggle-slider:before {
+      transform: translateX(24px);
+      background: var(--vp-accent);
+    }
+
+    .help-text {
+      font-size: 0.75rem;
+      color: var(--vp-text-secondary);
+      margin-top: -12px;
+      margin-bottom: 16px;
+    }
+
+    .help-text a {
+      color: var(--vp-accent);
+      text-decoration: none;
+    }
+
+    .help-text a:hover {
+      text-decoration: underline;
+    }
+
+    button {
+      padding: 12px 24px;
+      background: var(--vp-accent);
+      border: none;
+      border-radius: 4px;
+      color: var(--vp-bg-dark);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #fbbf24;
+    }
+
+    button.secondary {
+      background: var(--vp-bg-elevated);
+      color: var(--vp-text-primary);
+      border: 1px solid var(--vp-border);
+    }
+
+    button.secondary:hover {
+      background: var(--vp-border);
+    }
+
+    button.danger {
+      background: var(--vp-error);
+      color: white;
+    }
+
+    button.danger:hover {
+      background: #dc2626;
+    }
+
+    .status {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      display: none;
+    }
+
+    .status.success {
+      display: block;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid var(--vp-score-high);
+      color: var(--vp-score-high);
+    }
+
+    .status.error {
+      display: block;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--vp-error);
+      color: var(--vp-error);
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--vp-border);
+      margin: 24px 0;
+    }
+
+    .model-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .model-item {
+      margin-bottom: 0;
+    }
+
+    .model-item label {
+      margin-bottom: 4px;
+    }
+
+    .model-item select {
+      margin-bottom: 0;
+    }
+
+    .memory-list {
+      max-height: 300px;
+      overflow-y: auto;
+      margin-bottom: 16px;
+    }
+
+    .memory-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 12px;
+      background: var(--vp-bg-elevated);
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+
+    .memory-content {
+      flex: 1;
+    }
+
+    .memory-type {
+      font-size: 0.625rem;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-bottom: 4px;
+      display: inline-block;
+    }
+
+    .memory-type.like {
+      background: rgba(34, 197, 94, 0.2);
+      color: var(--vp-score-high);
+    }
+
+    .memory-type.dislike {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--vp-error);
+    }
+
+    .memory-preference {
+      font-size: 0.875rem;
+      margin-bottom: 4px;
+    }
+
+    .memory-source {
+      font-size: 0.75rem;
+      color: var(--vp-text-secondary);
+    }
+
+    .memory-source a {
+      color: var(--vp-primary);
+      text-decoration: none;
+    }
+
+    .memory-source a:hover {
+      text-decoration: underline;
+    }
+
+    .memory-sources-toggle {
+      background: none;
+      border: none;
+      color: var(--vp-accent);
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      padding: 0;
+      text-decoration: underline;
+    }
+
+    .memory-sources-toggle:hover {
+      color: #fbbf24;
+    }
+
+    .memory-sources-list {
+      margin-top: 6px;
+      padding-left: 12px;
+      border-left: 2px solid var(--vp-border);
+    }
+
+    .memory-sources-list.hidden {
+      display: none;
+    }
+
+    .memory-sources-list a {
+      display: block;
+      margin: 4px 0;
+      font-size: 0.7rem;
+      color: var(--vp-text-secondary);
+      text-decoration: none;
+    }
+
+    .memory-sources-list a:hover {
+      color: var(--vp-accent);
+      text-decoration: underline;
+    }
+
+    .memory-delete {
+      background: none;
+      border: none;
+      color: var(--vp-text-secondary);
+      cursor: pointer;
+      padding: 4px 8px;
+      font-size: 1rem;
+    }
+
+    .memory-delete:hover {
+      color: var(--vp-error);
+    }
+
+    .memory-empty {
+      text-align: center;
+      padding: 24px;
+      color: var(--vp-text-secondary);
+      font-size: 0.875rem;
+    }
+
+    .memory-count {
+      font-size: 0.75rem;
+      color: var(--vp-text-secondary);
+      margin-bottom: 12px;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    footer {
+      text-align: center;
+      color: var(--vp-text-secondary);
+      font-size: 0.75rem;
+      flex-shrink: 0;
+      padding: 16px 0;
+    }
+
+    footer a {
+      color: var(--vp-accent);
+      text-decoration: none;
+    }
+
+    .digest-section {
+      font-size: 0.875rem;
+    }
+
+    .digest-stat {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px;
+      background: var(--vp-bg-elevated);
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+
+    .digest-stat-label {
+      color: var(--vp-text-secondary);
+    }
+
+    .digest-stat-value {
+      font-weight: 500;
+      color: var(--vp-text-primary);
+    }
+
+    .digest-stat-value.high {
+      color: var(--vp-score-high);
+    }
+
+    .digest-category {
+      display: flex;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .digest-category-item {
+      flex: 1;
+      text-align: center;
+      padding: 12px;
+      background: var(--vp-bg-elevated);
+      border-radius: 4px;
+    }
+
+    .digest-category-count {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .digest-category-label {
+      font-size: 0.75rem;
+      color: var(--vp-text-secondary);
+      text-transform: uppercase;
+    }
+
+    .day-checkboxes {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .day-checkbox {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+
+    .day-checkbox input {
+      width: 20px;
+      height: 20px;
+      accent-color: var(--vp-accent);
+    }
+
+    .day-checkbox span {
+      font-size: 0.75rem;
+      color: var(--vp-text-secondary);
+    }
+
+    .time-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .time-field {
+      flex: 1;
+    }
+
+    .time-field select {
+      margin-bottom: 0;
+    }
+
+    .digest-empty {
+      text-align: center;
+      padding: 24px;
+      color: var(--vp-text-secondary);
+      font-size: 0.875rem;
+    }
+
+    .digest-weekly {
+      margin-bottom: 24px;
+    }
+
+    .digest-weekly h4 {
+      font-family: 'Crimson Pro', serif;
+      font-size: 1rem;
+      margin-bottom: 12px;
+      color: var(--vp-text-primary);
+    }
+
+    .digest-grid {
+      display: flex;
+      gap: 12px;
+    }
+
+    .digest-stat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+      background: var(--vp-bg-elevated);
+      border-radius: 4px;
+    }
+
+    .digest-value {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--vp-accent);
+    }
+
+    .digest-label {
+      font-size: 0.75rem;
+      color: var(--vp-text-secondary);
+      text-transform: uppercase;
+    }
+
+    .digest-categories {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .digest-category {
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: var(--vp-bg-elevated);
+      color: var(--vp-text-secondary);
+    }
+
+    .digest-category.educational {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--vp-score-high);
+    }
+
+    .digest-category.entertainment {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--vp-accent);
+    }
+
+    .digest-category.productive {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+    }
+
+    .digest-category.inspiring {
+      background: rgba(168, 85, 247, 0.15);
+      color: #a855f7;
+    }
+
+    .digest-category.creative {
+      background: rgba(236, 72, 153, 0.15);
+      color: #ec4899;
+    }
+
+    .digest-daily h4 {
+      font-family: 'Crimson Pro', serif;
+      font-size: 1rem;
+      margin-bottom: 12px;
+      color: var(--vp-text-primary);
+    }
+
+    .digest-day-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .digest-day {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: var(--vp-bg-elevated);
+      border-radius: 4px;
+    }
+
+    .digest-day-date {
+      color: var(--vp-text-primary);
+    }
+
+    .digest-day-stats {
+      color: var(--vp-text-secondary);
+    }
+
+    /* Notes Manager */
+    .notes-manager {
+      display: flex;
+      gap: 16px;
+      min-height: 300px;
+    }
+
+    .notes-sidebar {
+      width: 200px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .notes-search {
+      margin-bottom: 0 !important;
+    }
+
+    .notes-video-list {
+      flex: 1;
+      overflow-y: auto;
+      background: var(--vp-bg-elevated);
+      border-radius: 4px;
+      max-height: 250px;
+    }
+
+    .notes-video-item {
+      padding: 10px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--vp-border);
+      transition: background 0.2s;
+    }
+
+    .notes-video-item:last-child {
+      border-bottom: none;
+    }
+
+    .notes-video-item:hover {
+      background: rgba(245, 158, 11, 0.1);
+    }
+
+    .notes-video-item.active {
+      background: var(--vp-accent-dim);
+    }
+
+    .notes-video-title {
+      font-size: 0.8rem;
+      color: var(--vp-text-primary);
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .notes-video-count {
+      font-size: 0.7rem;
+      color: var(--vp-text-secondary);
+    }
+
+    .notes-detail {
+      flex: 1;
+      background: var(--vp-bg-elevated);
+      border-radius: 4px;
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    .notes-detail-header {
+      margin-bottom: 16px;
+    }
+
+    .notes-detail-title {
+      font-family: 'Crimson Pro', serif;
+      font-size: 1rem;
+      margin-bottom: 8px;
+      color: var(--vp-accent);
+    }
+
+    .notes-detail-title a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .notes-detail-title a:hover {
+      text-decoration: underline;
+    }
+
+    .notes-detail-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .notes-detail-actions button {
+      padding: 6px 12px;
+      font-size: 0.75rem;
+    }
+
+    .notes-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .note-card {
+      padding: 12px;
+      background: var(--vp-bg-dark);
+      border-radius: 4px;
+    }
+
+    .note-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .note-timestamp {
+      background: var(--vp-accent-dim);
+      border: none;
+      border-radius: 4px;
+      color: var(--vp-accent);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .note-timestamp:hover {
+      background: var(--vp-accent);
+      color: var(--vp-bg-dark);
+    }
+
+    .note-card-content {
+      font-size: 0.85rem;
+      color: var(--vp-text-primary);
+      line-height: 1.5;
+    }
+
+    .note-card-meta {
+      font-size: 0.7rem;
+      color: var(--vp-text-secondary);
+      margin-top: 8px;
+    }
+
+    .notes-empty,
+    .notes-empty-detail {
+      color: var(--vp-text-secondary);
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .about-me-status {
+      font-size: 0.7rem;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .about-me-status.auto {
+      color: var(--vp-text-secondary);
+    }
+
+    .about-me-status.manual {
+      color: var(--vp-accent);
+    }
+
+    .about-me-status.syncing {
+      color: var(--vp-text-secondary);
+    }
+
+    .about-me-status .spinner {
+      width: 10px;
+      height: 10px;
+      border: 2px solid var(--vp-text-secondary);
+      border-top-color: var(--vp-accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Liked Channels */
+    .liked-channels-list {
+      max-height: 400px;
+      overflow-y: auto;
+      margin-bottom: 16px;
+    }
+
+    .liked-channel-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 12px;
+      background: var(--vp-bg-elevated);
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+
+    .liked-channel-content {
+      flex: 1;
+    }
+
+    .liked-channel-name {
+      font-size: 0.95rem;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .liked-channel-name a {
+      color: var(--vp-accent);
+      text-decoration: none;
+    }
+
+    .liked-channel-name a:hover {
+      text-decoration: underline;
+    }
+
+    .liked-channel-stats {
+      font-size: 0.75rem;
+      color: var(--vp-text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .liked-channel-videos {
+      font-size: 0.7rem;
+      color: var(--vp-text-secondary);
+    }
+
+    .subscription-badge {
+      font-size: 0.625rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .subscription-badge.subscribed {
+      background: rgba(34, 197, 94, 0.2);
+      color: var(--vp-score-high);
+    }
+
+    .subscription-badge.not-subscribed {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--vp-accent);
+    }
+
+    .liked-channel-forget {
+      background: none;
+      border: none;
+      color: var(--vp-text-secondary);
+      cursor: pointer;
+      padding: 4px 8px;
+      font-size: 1rem;
+    }
+
+    .liked-channel-forget:hover {
+      color: var(--vp-error);
+    }
+
+    /* Tabbed Layout */
+    .settings-layout {
+      display: flex;
+      gap: 24px;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .tab-nav {
+      display: flex;
+      flex-direction: column;
+      width: 200px;
+      flex-shrink: 0;
+      gap: 4px;
+    }
+
+    .tab-nav [role="tab"] {
+      background: transparent;
+      border: none;
+      border-left: 3px solid transparent;
+      padding: 12px 16px;
+      text-align: left;
+      color: var(--vp-text-secondary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-radius: 0 4px 4px 0;
+    }
+
+    .tab-nav [role="tab"]:hover {
+      background: var(--vp-bg-card);
+      color: var(--vp-text-primary);
+    }
+
+    .tab-nav [role="tab"][aria-selected="true"] {
+      background: var(--vp-bg-card);
+      border-left-color: var(--vp-accent);
+      color: var(--vp-accent);
+    }
+
+    .tab-nav [role="tab"]:focus-visible {
+      outline: 2px solid var(--vp-accent);
+      outline-offset: 2px;
+    }
+
+    .tab-panels {
+      flex: 1;
+      min-width: 0;
+      overflow-y: auto;
+      padding-bottom: 40px;
+    }
+
+    [role="tabpanel"] {
+      animation: fadeIn 0.2s ease;
+    }
+
+    [role="tabpanel"][hidden] {
+      display: none;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    [role="tabpanel"] .card:last-child {
+      margin-bottom: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>VidPulse</h1>
+      <p class="subtitle">AI-powered YouTube video analysis</p>
+    </header>
+
+    <div class="settings-layout">
+      <nav class="tab-nav" role="tablist" aria-label="Settings sections">
+        <button role="tab" id="tab-api" aria-selected="true" aria-controls="panel-api">API & Models</button>
+        <button role="tab" id="tab-personalization" aria-selected="false" aria-controls="panel-personalization" tabindex="-1">Personalization & Memory</button>
+        <button role="tab" id="tab-productivity" aria-selected="false" aria-controls="panel-productivity" tabindex="-1">Productivity & Focus</button>
+        <button role="tab" id="tab-insights" aria-selected="false" aria-controls="panel-insights" tabindex="-1">Insights & Notes</button>
+      </nav>
+
+      <div class="tab-panels">
+        <!-- API & Models Panel -->
+        <div role="tabpanel" id="panel-api" aria-labelledby="tab-api">
+          <div class="card">
+            <h2 class="card-title">API Configuration</h2>
+
+            <label for="apiKey">Google AI API Key</label>
+            <input type="password" id="apiKey" placeholder="Enter your API key">
+            <p class="help-text">
+              Get your free API key from <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a>
+            </p>
+
+            <div class="divider"></div>
+
+            <label for="braveApiKey">Brave Search API Key</label>
+            <input type="password" id="braveApiKey" placeholder="BSA...">
+            <p class="help-text">
+              Get your free API key from <a href="https://api-dashboard.search.brave.com" target="_blank">Brave Search API</a> for the Related tab
+            </p>
+
+            <div class="divider"></div>
+
+            <label for="cacheExpiry">Cache Duration (days)</label>
+            <input type="number" id="cacheExpiry" placeholder="365" min="1" max="365">
+            <p class="help-text">
+              How long to remember video analyses (cache auto-expires when preferences change)
+            </p>
+
+            <button id="saveApiBtn">Save API Settings</button>
+            <div id="apiStatus" class="status"></div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">AI Models</h2>
+            <p class="help-text" style="margin-top: 0; margin-bottom: 16px;">
+              Choose which model to use for each AI operation
+            </p>
+
+            <div class="model-grid">
+              <div class="model-item">
+                <label for="modelVideoReading">Video Reading</label>
+                <select id="modelVideoReading">
+                  <option value="gemini-3-flash-preview">Gemini 3 Flash</option>
+                  <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                  <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                  <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                </select>
+              </div>
+
+              <div class="model-item">
+                <label for="modelSummarization">Summarization</label>
+                <select id="modelSummarization">
+                  <option value="gemini-3-flash-preview">Gemini 3 Flash</option>
+                  <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                  <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                  <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                </select>
+              </div>
+
+              <div class="model-item">
+                <label for="modelReasoning">Recommendation</label>
+                <select id="modelReasoning">
+                  <option value="gemini-3-flash-preview">Gemini 3 Flash</option>
+                  <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                  <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                  <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                </select>
+              </div>
+
+              <div class="model-item">
+                <label for="modelTags">Tag Generation</label>
+                <select id="modelTags">
+                  <option value="gemini-3-flash-preview">Gemini 3 Flash</option>
+                  <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                  <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                  <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                </select>
+              </div>
+
+              <div class="model-item">
+                <label for="modelAnalysis">Score Analysis</label>
+                <select id="modelAnalysis">
+                  <option value="gemini-3-flash-preview">Gemini 3 Flash</option>
+                  <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                  <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                  <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                </select>
+              </div>
+
+              <div class="model-item">
+                <label for="modelMemory">Memory Extraction</label>
+                <select id="modelMemory">
+                  <option value="gemini-3-flash-preview">Gemini 3 Flash</option>
+                  <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                  <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                  <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="margin-top: 16px;">
+              <button id="saveModelsBtn">Save Model Settings</button>
+              <div id="modelsStatus" class="status"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Personalization & Memory Panel -->
+        <div role="tabpanel" id="panel-personalization" aria-labelledby="tab-personalization" hidden>
+          <div class="card">
+            <h2 class="card-title">Personalization</h2>
+
+            <label for="aboutMe">About Me</label>
+            <div id="aboutMeStatus" class="about-me-status"></div>
+            <textarea id="aboutMe" placeholder="Describe your interests, goals, and what kind of content you find valuable...
+
+Example: I'm a software developer interested in productivity, system design, and learning new programming languages. I prefer educational content over entertainment."></textarea>
+            <p class="help-text">
+              The AI will use this to calculate how relevant each video is to your interests
+            </p>
+
+            <div class="btn-row">
+              <button id="savePersonalization">Save Personalization</button>
+              <button id="resetAutoSync" class="secondary">Reset to Auto</button>
+            </div>
+            <div id="personalizationStatus" class="status"></div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">Learned Preferences</h2>
+            <p class="help-text" style="margin-top: 0; margin-bottom: 16px;">
+              Preferences extracted from your like/dislike feedback
+            </p>
+
+            <div id="memoryCount" class="memory-count"></div>
+            <div id="memoryList" class="memory-list">
+              <div class="memory-empty">No preferences learned yet. Like or dislike videos to teach VidPulse your taste!</div>
+            </div>
+
+            <div class="btn-row">
+              <button id="refreshMemories" class="secondary">Refresh</button>
+              <button id="condenseMemories" class="secondary">Condense Similar</button>
+              <button id="clearMemories" class="danger">Clear All</button>
+            </div>
+            <div id="memoryStatus" class="status"></div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">Liked Channels</h2>
+            <p class="help-text" style="margin-top: 0; margin-bottom: 16px;">
+              Channels from videos you've liked
+            </p>
+
+            <div id="likedChannelsCount" class="memory-count"></div>
+            <div id="likedChannelsList" class="liked-channels-list">
+              <div class="memory-empty">No liked channels yet. Like videos to track channels!</div>
+            </div>
+
+            <div class="btn-row">
+              <button id="refreshLikedChannels" class="secondary">Refresh</button>
+            </div>
+            <div id="likedChannelsStatus" class="status"></div>
+          </div>
+        </div>
+
+        <!-- Productivity & Focus Panel -->
+        <div role="tabpanel" id="panel-productivity" aria-labelledby="tab-productivity" hidden>
+          <div class="card">
+            <h2 class="card-title">Productivity Guardian</h2>
+
+            <div class="toggle-row">
+              <span class="toggle-label">Enable Guardian</span>
+              <label class="toggle">
+                <input type="checkbox" id="guardianEnabled">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <p class="help-text" style="margin-top: -8px;">
+              Shows a warning banner on videos that don't meet your criteria
+            </p>
+
+            <div class="divider"></div>
+
+            <label for="minScoreThreshold">Minimum Score Threshold</label>
+            <input type="number" id="minScoreThreshold" placeholder="40" min="0" max="100">
+            <p class="help-text">
+              Warn if ALL scores (productivity, educational, entertainment) are below this value
+            </p>
+
+            <label for="blockedTags">Blocked Tags</label>
+            <input type="text" id="blockedTags" placeholder="drama, gossip, clickbait">
+            <p class="help-text">
+              Comma-separated list of tags that will always trigger a warning
+            </p>
+
+            <button id="saveGuardian">Save Guardian Settings</button>
+            <div id="guardianStatus" class="status"></div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">Check-in Prompts</h2>
+
+            <div class="toggle-row">
+              <span class="toggle-label">Enable Check-in Prompts</span>
+              <label class="toggle">
+                <input type="checkbox" id="checkInEnabled">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <p class="help-text" style="margin-top: -8px;">
+              Periodic reminders to check if you're still watching intentionally
+            </p>
+
+            <label for="checkInInterval">Check-in Interval (minutes)</label>
+            <select id="checkInInterval">
+              <option value="15">15 minutes</option>
+              <option value="30">30 minutes</option>
+              <option value="45">45 minutes</option>
+              <option value="60">60 minutes</option>
+            </select>
+
+            <button id="saveCheckIn">Save Check-in Settings</button>
+            <div id="checkInStatus" class="status"></div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">Focus Schedule</h2>
+            <p class="help-text" style="margin-top: 0; margin-bottom: 16px;">
+              Stricter rules during work hours
+            </p>
+
+            <div class="toggle-row">
+              <span class="toggle-label">Enable Focus Schedule</span>
+              <label class="toggle">
+                <input type="checkbox" id="focusEnabled">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <label>Active Days</label>
+            <div class="day-checkboxes">
+              <label class="day-checkbox"><input type="checkbox" id="focusDay0"><span>Sun</span></label>
+              <label class="day-checkbox"><input type="checkbox" id="focusDay1" checked><span>Mon</span></label>
+              <label class="day-checkbox"><input type="checkbox" id="focusDay2" checked><span>Tue</span></label>
+              <label class="day-checkbox"><input type="checkbox" id="focusDay3" checked><span>Wed</span></label>
+              <label class="day-checkbox"><input type="checkbox" id="focusDay4" checked><span>Thu</span></label>
+              <label class="day-checkbox"><input type="checkbox" id="focusDay5" checked><span>Fri</span></label>
+              <label class="day-checkbox"><input type="checkbox" id="focusDay6"><span>Sat</span></label>
+            </div>
+
+            <div class="time-row">
+              <div class="time-field">
+                <label for="focusStartHour">Start Hour</label>
+                <select id="focusStartHour">
+                  <option value="6">6 AM</option>
+                  <option value="7">7 AM</option>
+                  <option value="8">8 AM</option>
+                  <option value="9" selected>9 AM</option>
+                  <option value="10">10 AM</option>
+                  <option value="11">11 AM</option>
+                  <option value="12">12 PM</option>
+                </select>
+              </div>
+              <div class="time-field">
+                <label for="focusEndHour">End Hour</label>
+                <select id="focusEndHour">
+                  <option value="15">3 PM</option>
+                  <option value="16">4 PM</option>
+                  <option value="17" selected>5 PM</option>
+                  <option value="18">6 PM</option>
+                  <option value="19">7 PM</option>
+                  <option value="20">8 PM</option>
+                  <option value="21">9 PM</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <label for="focusThreshold">Focus Mode Threshold</label>
+            <input type="number" id="focusThreshold" placeholder="60" min="0" max="100">
+            <p class="help-text">
+              Higher threshold during focus hours (default: 60)
+            </p>
+
+            <div class="toggle-row">
+              <span class="toggle-label">Block Entertainment</span>
+              <label class="toggle">
+                <input type="checkbox" id="focusBlockEntertainment" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <p class="help-text" style="margin-top: -8px;">
+              Block entertainment-dominant videos during focus hours
+            </p>
+
+            <button id="saveFocus">Save Focus Settings</button>
+            <div id="focusStatus" class="status"></div>
+          </div>
+        </div>
+
+        <!-- Insights & Notes Panel -->
+        <div role="tabpanel" id="panel-insights" aria-labelledby="tab-insights" hidden>
+          <div class="card">
+            <h2 class="card-title">Watch Stats</h2>
+            <p class="help-text" style="margin-top: 0; margin-bottom: 16px;">
+              Your YouTube watching patterns over time
+            </p>
+
+            <div id="digestContent" class="digest-section">
+              <p class="memory-empty">Loading stats...</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">Video Notes</h2>
+            <p class="help-text" style="margin-top: 0; margin-bottom: 16px;">
+              Your timestamped notes on videos
+            </p>
+
+            <div class="notes-manager">
+              <div class="notes-sidebar">
+                <input type="text" id="notesSearch" placeholder="Search videos..." class="notes-search">
+                <div id="notesVideoList" class="notes-video-list">
+                  <div class="notes-empty">No notes yet</div>
+                </div>
+              </div>
+              <div class="notes-detail" id="notesDetail">
+                <p class="notes-empty-detail">Select a video to view notes</p>
+              </div>
+            </div>
+
+            <div class="btn-row" style="margin-top: 16px;">
+              <button id="refreshNotes" class="secondary">Refresh</button>
+              <button id="exportAllNotes">Export All</button>
+            </div>
+            <div id="notesStatus" class="status"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>VidPulse v1.0.0</p>
+    </footer>
+  </div>
+
+  <script type="module" src="index.js"></script>
+</body>
+</html>
