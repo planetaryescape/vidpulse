@@ -53,7 +53,11 @@ import {
   addLikedChannel,
   removeLikedChannel,
   updateLikedChannelSubscription,
+  migrateApiKeysToLocal,
 } from '../shared/storage';
+
+// Migrate API keys from sync to local storage on startup
+migrateApiKeysToLocal().catch(() => {});
 
 // Helper to extract JSON from response (handles markdown code blocks)
 function extractJson(text: string): string {

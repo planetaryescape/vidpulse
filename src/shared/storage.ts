@@ -1,4 +1,4 @@
-import type { Settings, CacheEntry, VideoAnalysis, MemoryEntry, VideoFeedback, ModelConfig, SessionData, SessionVideo, ChannelStats, DailyStats, FocusSchedule, VideoNote, NotesIndex, LikedChannel, VideoSource } from './types';
+import type { Settings, CacheEntry, VideoAnalysis, MemoryEntry, VideoFeedback, ModelConfig, SessionData, SessionVideo, ChannelStats, DailyStats, FocusSchedule, VideoNote, NotesIndex, LikedChannel, VideoSource, ApiKeys } from './types';
 
 const DEFAULT_MODELS: ModelConfig = {
   videoReading: 'gemini-3-flash-preview',
@@ -28,11 +28,53 @@ const DEFAULT_SETTINGS: Settings = {
 const CACHE_PREFIX = 'cache_';
 const MEMORIES_KEY = 'vidpulse_memories';
 const FEEDBACK_KEY = 'vidpulse_feedback';
+const API_KEYS_KEY = 'vidpulse_api_keys';
 
-// Settings (synced across devices)
+// API keys stored in local storage only (not synced for security)
+async function getApiKeys(): Promise<ApiKeys> {
+  const result = await chrome.storage.local.get(API_KEYS_KEY);
+  return result[API_KEYS_KEY] || { apiKey: '' };
+}
+
+async function saveApiKeys(keys: Partial<ApiKeys>): Promise<void> {
+  const current = await getApiKeys();
+  await chrome.storage.local.set({ [API_KEYS_KEY]: { ...current, ...keys } });
+}
+
+// Migrate API keys from sync to local storage (one-time migration)
+export async function migrateApiKeysToLocal(): Promise<void> {
+  const localKeys = await getApiKeys();
+  if (localKeys.apiKey) return; // Already migrated
+
+  const syncResult = await chrome.storage.sync.get('settings');
+  const syncSettings = syncResult.settings || {};
+
+  if (syncSettings.apiKey || syncSettings.braveApiKey) {
+    // Copy keys to local storage
+    await saveApiKeys({
+      apiKey: syncSettings.apiKey || '',
+      braveApiKey: syncSettings.braveApiKey,
+    });
+
+    // Remove keys from sync storage
+    delete syncSettings.apiKey;
+    delete syncSettings.braveApiKey;
+    await chrome.storage.sync.set({ settings: syncSettings });
+  }
+}
+
+// Settings (synced across devices, except API keys which are local-only)
 export async function getSettings(): Promise<Settings> {
-  const result = await chrome.storage.sync.get('settings');
-  return { ...DEFAULT_SETTINGS, ...result.settings };
+  const [syncResult, apiKeys] = await Promise.all([
+    chrome.storage.sync.get('settings'),
+    getApiKeys(),
+  ]);
+  return {
+    ...DEFAULT_SETTINGS,
+    ...syncResult.settings,
+    apiKey: apiKeys.apiKey || '',
+    braveApiKey: apiKeys.braveApiKey,
+  };
 }
 
 // Check if preference-affecting settings changed
@@ -63,9 +105,22 @@ export async function saveSettings(settings: Partial<Settings>): Promise<void> {
     newVersion = (current.preferencesVersion || 1) + 1;
   }
 
-  await chrome.storage.sync.set({
-    settings: { ...current, ...settings, preferencesVersion: newVersion }
-  });
+  // Extract API keys for local storage
+  const apiKeyUpdates: Partial<ApiKeys> = {};
+  if ('apiKey' in settings) apiKeyUpdates.apiKey = settings.apiKey;
+  if ('braveApiKey' in settings) apiKeyUpdates.braveApiKey = settings.braveApiKey;
+
+  // Prepare sync settings (exclude API keys)
+  const { apiKey: _apiKey, braveApiKey: _braveApiKey, ...syncableUpdates } = settings;
+  const syncData = { ...current, ...syncableUpdates, preferencesVersion: newVersion };
+  delete (syncData as Record<string, unknown>).apiKey;
+  delete (syncData as Record<string, unknown>).braveApiKey;
+
+  // Save to both storage areas
+  await Promise.all([
+    chrome.storage.sync.set({ settings: syncData }),
+    Object.keys(apiKeyUpdates).length > 0 ? saveApiKeys(apiKeyUpdates) : Promise.resolve(),
+  ]);
 }
 
 // Cache (local only)

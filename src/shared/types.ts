@@ -231,6 +231,12 @@ export interface RelatedContentCache {
   cachedAt: number;
 }
 
+// API keys (stored separately in local storage for security)
+export interface ApiKeys {
+  apiKey: string;
+  braveApiKey?: string;
+}
+
 // User notes on videos
 export interface VideoNote {
   id: string;                    // uuid
