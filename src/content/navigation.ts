@@ -54,7 +54,7 @@ export function setupNavigationListener(callback: NavigationCallback): void {
 		}
 	}, 5000);
 
-	// Initial page load handling - always trigger if on video page
+	// Initial page load handling - trigger once if on video page
 	const tryInitial = () => {
 		const videoId = extractVideoId(window.location.href);
 		if (videoId) {
@@ -65,14 +65,12 @@ export function setupNavigationListener(callback: NavigationCallback): void {
 		}
 	};
 
-	// Try immediately
-	tryInitial();
-
-	// Also try after short delay (YouTube may not be ready)
-	setTimeout(tryInitial, 500);
-
-	// And after page fully loads
-	if (document.readyState !== "complete") {
-		window.addEventListener("load", () => setTimeout(tryInitial, 300));
+	// Call once: immediately if loaded, otherwise after load
+	if (document.readyState === "complete") {
+		tryInitial();
+	} else {
+		window.addEventListener("load", () => setTimeout(tryInitial, 300), {
+			once: true,
+		});
 	}
 }
