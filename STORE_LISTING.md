@@ -9,7 +9,7 @@ Stop wasting time on clickbait. VidPulse is a mindful video consumption tool tha
 
 ### How It Works
 1. Navigate to any YouTube video
-2. VidPulse analyzes the content using Google's Gemini AI
+2. VidPulse analyzes the content using AI via OpenRouter
 3. View the analysis panel showing summary, scores, and verdict
 4. Make informed decisions about what to watch
 
@@ -54,7 +54,7 @@ Get a clear recommendation: Worth It, Maybe, or Skip - personalized to your pref
 - Open source and auditable
 
 ### Requirements
-- Google Gemini API key (free tier available at ai.google.dev)
+- OpenRouter API key (get one at openrouter.ai/keys)
 - Optional: Brave Search API key for related content
 
 ---
@@ -121,7 +121,7 @@ For Chrome Web Store privacy practices form:
 | Host | Justification |
 |------|---------------|
 | `youtube.com` | Primary site - inject analysis panel, read video information |
-| `generativelanguage.googleapis.com` | Google Gemini API for AI video analysis (user's own API key) |
+| `openrouter.ai` | OpenRouter API for AI video analysis (user's own API key) |
 | `api.search.brave.com` | Optional Brave Search API for related content (user's own API key) |
 
 ---
@@ -134,7 +134,7 @@ Answers for Chrome Web Store submission form:
 Yes - user preferences, video analysis cache, feedback on videos. All stored locally on device.
 
 **"Is data sent to external servers?"**
-Yes - video content is sent to Google's Gemini API for AI analysis. User provides their own API key. Optionally, search queries sent to Brave Search API for related content.
+Yes - video content is sent to OpenRouter for AI analysis (which routes to models like Gemini, Claude, GPT). User provides their own API key. Optionally, search queries sent to Brave Search API for related content.
 
 **"Do you share or sell user data?"**
 No - data is only sent to APIs the user explicitly configures with their own keys. No data is shared with the extension developer or any third parties.

@@ -5,21 +5,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build Commands
 
 ```bash
-npm run dev      # Build with watch mode (development)
-npm run build    # Production build
-npm run clean    # Remove dist/
+bun run dev      # Build with watch mode (development)
+bun run build    # Production build
+bun run clean    # Remove dist/
 ```
 
 No test framework configured.
 
 ## Project Overview
 
-VidPulse is a Chrome extension (Manifest V3) that uses Google's Gemini AI to analyze YouTube videos before watching. It displays a sidebar panel with AI-generated summaries, scores (productivity/educational/entertainment), and a "worth it" verdict.
+VidPulse is a Chrome extension (Manifest V3) that uses AI models via OpenRouter to analyze YouTube videos before watching. It displays a sidebar panel with AI-generated summaries, scores (productivity/educational/entertainment), and a "worth it" verdict.
 
 ## Architecture
 
 **Entry Points:**
-- `src/background/service-worker.ts` - Background worker handling Gemini API calls, caching, message routing
+- `src/background/service-worker.ts` - Background worker handling OpenRouter API calls, caching, message routing
 - `src/content/index.ts` - Content script injected on YouTube pages
 - `src/options/index.ts` - Extension options page
 
@@ -34,8 +34,8 @@ VidPulse is a Chrome extension (Manifest V3) that uses Google's Gemini AI to ana
 - `shared/messages.ts` - Chrome message passing types and helpers
 - `shared/storage.ts` - Chrome storage API wrappers (sync for settings, local for cache)
 
-**Gemini Analysis Pipeline** (in `service-worker.ts`):
-1. `readVideoContent()` - multimodal video reading via fileData
+**OpenRouter Analysis Pipeline** (in `service-worker.ts`):
+1. `readVideoContent()` - multimodal video reading via video_url (Gemini models)
 2. Parallel: `generateSummary()`, `extractKeyPoints()`, `generateTags()`, `analyzeContent()`
 3. `generateReason()` - personalized recommendation based on scores/verdict
 
@@ -50,10 +50,11 @@ VidPulse is a Chrome extension (Manifest V3) that uses Google's Gemini AI to ana
 - Analysis results cached in `chrome.storage.local` with configurable expiry
 - Settings synced across devices via `chrome.storage.sync`
 - Panel auto-retries finding YouTube sidebar container (5 attempts)
-- Each pipeline step can use different Gemini model (configured via `ModelConfig`)
+- Each pipeline step can use different model (configured via `ModelConfig`)
 
 ## Tech Stack
 
+- Bun (package manager and runtime)
 - TypeScript, Vite, @crxjs/vite-plugin (Chrome extension build)
-- @google/genai for Gemini API (video analysis via fileData)
+- @openrouter/sdk + @openrouter/ai-sdk-provider (AI via OpenRouter)
 - Chrome Extension APIs (Manifest V3): storage, tabs, activeTab
