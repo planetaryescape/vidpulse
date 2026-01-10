@@ -114,7 +114,6 @@ export interface StorageSetSessionIntentRequest {
 
 export interface StorageGetChannelStatsRequest {
   type: typeof MessageType.STORAGE_GET_CHANNEL_STATS;
-  channelId: string;
 }
 
 export interface StorageUpdateChannelStatsRequest {
@@ -262,7 +261,7 @@ export interface StorageStartSessionResponse {
 }
 
 export interface StorageGetChannelStatsResponse {
-  stats: ChannelStats | null;
+  stats: Record<string, ChannelStats>;
 }
 
 export interface StorageGetFocusScheduleResponse {

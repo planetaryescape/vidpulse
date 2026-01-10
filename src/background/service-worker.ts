@@ -969,8 +969,7 @@ chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) =
         }
 
         case MessageType.STORAGE_GET_CHANNEL_STATS: {
-          const { channelId } = message;
-          const stats = await getChannelStats(channelId);
+          const stats = await getChannelStats();
           sendResponse({ stats } satisfies StorageGetChannelStatsResponse);
           break;
         }
