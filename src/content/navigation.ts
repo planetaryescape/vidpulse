@@ -46,12 +46,13 @@ export function setupNavigationListener(callback: NavigationCallback): void {
 	});
 
 	// Fallback: URL polling for edge cases YouTube's events miss
+	// 5s interval balances battery/CPU savings vs responsiveness
 	setInterval(() => {
 		const url = window.location.href;
 		if (url !== lastUrl) {
 			handleUrlChange(url);
 		}
-	}, 1000);
+	}, 5000);
 
 	// Initial page load handling - always trigger if on video page
 	const tryInitial = () => {
