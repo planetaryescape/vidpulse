@@ -708,7 +708,7 @@ async function searchBrave(query: string, apiKey: string): Promise<RelatedResour
 
 async function getRelatedCache(videoId: string): Promise<RelatedContentCache | null> {
   const result = await chrome.storage.local.get(RELATED_CACHE_KEY);
-  const cache: Record<string, RelatedContentCache> = result[RELATED_CACHE_KEY] || {};
+  const cache = (result[RELATED_CACHE_KEY] || {}) as Record<string, RelatedContentCache>;
   const entry = cache[videoId];
 
   if (!entry) return null;
@@ -726,7 +726,7 @@ async function getRelatedCache(videoId: string): Promise<RelatedContentCache | n
 
 async function setRelatedCache(videoId: string, resources: RelatedResource[], searchQuery: string): Promise<void> {
   const result = await chrome.storage.local.get(RELATED_CACHE_KEY);
-  const cache: Record<string, RelatedContentCache> = result[RELATED_CACHE_KEY] || {};
+  const cache = (result[RELATED_CACHE_KEY] || {}) as Record<string, RelatedContentCache>;
 
   cache[videoId] = {
     videoId,
@@ -987,7 +987,7 @@ chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) =
 
         case MessageType.STORAGE_UPDATE_DAILY_STATS: {
           const { video } = message;
-          await updateDailyStats(video);
+          await updateDailyStats(video.duration, video.scores, video.channelId);
           sendResponse({ success: true });
           break;
         }
@@ -1008,7 +1008,7 @@ chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) =
         case MessageType.STORAGE_GET_OVERRIDE_STATS: {
           const OVERRIDE_KEY = 'vidpulse_overrides';
           const result = await chrome.storage.local.get(OVERRIDE_KEY);
-          const stats: OverrideStats = result[OVERRIDE_KEY] || { total: 0, thisWeek: 0, lastReset: Date.now() };
+          const stats = (result[OVERRIDE_KEY] as OverrideStats | undefined) || { total: 0, thisWeek: 0, lastReset: Date.now() };
 
           // Reset weekly counter if needed
           const weekMs = 7 * 24 * 60 * 60 * 1000;
@@ -1025,7 +1025,7 @@ chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) =
         case MessageType.STORAGE_TRACK_OVERRIDE: {
           const OVERRIDE_KEY = 'vidpulse_overrides';
           const result = await chrome.storage.local.get(OVERRIDE_KEY);
-          const stats: OverrideStats = result[OVERRIDE_KEY] || { total: 0, thisWeek: 0, lastReset: Date.now() };
+          const stats = (result[OVERRIDE_KEY] as OverrideStats | undefined) || { total: 0, thisWeek: 0, lastReset: Date.now() };
 
           // Reset weekly counter if needed
           const weekMs = 7 * 24 * 60 * 60 * 1000;

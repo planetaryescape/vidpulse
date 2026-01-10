@@ -74,7 +74,7 @@ export async function getChannelStats(): Promise<Record<string, ChannelStats>> {
 export async function updateChannelStats(
   channelId: string,
   channelName: string,
-  scores: { productivity: number; educational: number; entertainment: number }
+  scores: { productivity: number; educational: number; entertainment: number; inspiring: number; creative: number }
 ): Promise<void> {
   await sendMessage<{ success: boolean }>({
     type: MessageType.STORAGE_UPDATE_CHANNEL_STATS,
@@ -86,7 +86,7 @@ export async function updateChannelStats(
 
 export async function updateDailyStats(video: {
   duration: number;
-  scores: { productivity: number; educational: number; entertainment: number };
+  scores: { productivity: number; educational: number; entertainment: number; inspiring: number; creative: number };
   channelId: string;
 }): Promise<void> {
   await sendMessage<{ success: boolean }>({

@@ -77,6 +77,8 @@ async function updateSessionVideoWithAnalysis(videoId: string, analysis: VideoAn
       productivity: analysis.scores.productivity,
       educational: analysis.scores.educational,
       entertainment: analysis.scores.entertainment,
+      inspiring: analysis.scores.inspiring,
+      creative: analysis.scores.creative,
     },
     verdict: analysis.verdict,
   };
@@ -89,6 +91,8 @@ async function updateSessionVideoWithAnalysis(videoId: string, analysis: VideoAn
       productivity: analysis.scores.productivity,
       educational: analysis.scores.educational,
       entertainment: analysis.scores.entertainment,
+      inspiring: analysis.scores.inspiring,
+      creative: analysis.scores.creative,
     });
   }
 
@@ -99,6 +103,8 @@ async function updateSessionVideoWithAnalysis(videoId: string, analysis: VideoAn
       productivity: analysis.scores.productivity,
       educational: analysis.scores.educational,
       entertainment: analysis.scores.entertainment,
+      inspiring: analysis.scores.inspiring,
+      creative: analysis.scores.creative,
     },
     channelId: channelInfo?.channelId || '',
   });

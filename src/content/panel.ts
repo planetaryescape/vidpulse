@@ -16,7 +16,7 @@ const FONT_SIZE_STEP = 0.1;
 
 async function getFontSize(): Promise<number> {
   const result = await chrome.storage.sync.get(FONT_SIZE_KEY);
-  return result[FONT_SIZE_KEY] || 1;
+  return (result[FONT_SIZE_KEY] as number | undefined) || 1;
 }
 
 async function saveFontSize(size: number): Promise<void> {

@@ -120,14 +120,14 @@ export interface StorageUpdateChannelStatsRequest {
   type: typeof MessageType.STORAGE_UPDATE_CHANNEL_STATS;
   channelId: string;
   channelName: string;
-  scores: { productivity: number; educational: number; entertainment: number };
+  scores: { productivity: number; educational: number; entertainment: number; inspiring: number; creative: number };
 }
 
 export interface StorageUpdateDailyStatsRequest {
   type: typeof MessageType.STORAGE_UPDATE_DAILY_STATS;
   video: {
     duration: number;
-    scores: { productivity: number; educational: number; entertainment: number };
+    scores: { productivity: number; educational: number; entertainment: number; inspiring: number; creative: number };
     channelId: string;
   };
 }

@@ -33,7 +33,7 @@ const API_KEYS_KEY = 'vidpulse_api_keys';
 // API keys stored in local storage only (not synced for security)
 async function getApiKeys(): Promise<ApiKeys> {
   const result = await chrome.storage.local.get(API_KEYS_KEY);
-  return result[API_KEYS_KEY] || { apiKey: '' };
+  return (result[API_KEYS_KEY] as ApiKeys | undefined) || { apiKey: '' };
 }
 
 async function saveApiKeys(keys: Partial<ApiKeys>): Promise<void> {
@@ -47,7 +47,7 @@ export async function migrateApiKeysToLocal(): Promise<void> {
   if (localKeys.apiKey) return; // Already migrated
 
   const syncResult = await chrome.storage.sync.get('settings');
-  const syncSettings = syncResult.settings || {};
+  const syncSettings = (syncResult.settings || {}) as Partial<Settings> & Record<string, unknown>;
 
   if (syncSettings.apiKey || syncSettings.braveApiKey) {
     // Copy keys to local storage
@@ -69,9 +69,10 @@ export async function getSettings(): Promise<Settings> {
     chrome.storage.sync.get('settings'),
     getApiKeys(),
   ]);
+  const syncSettings = (syncResult.settings || {}) as Partial<Settings>;
   return {
     ...DEFAULT_SETTINGS,
-    ...syncResult.settings,
+    ...syncSettings,
     apiKey: apiKeys.apiKey || '',
     braveApiKey: apiKeys.braveApiKey,
   };
@@ -127,7 +128,7 @@ export async function saveSettings(settings: Partial<Settings>): Promise<void> {
 export async function getCached(videoId: string): Promise<VideoAnalysis | null> {
   const key = `${CACHE_PREFIX}${videoId}`;
   const result = await chrome.storage.local.get(key);
-  const entry: CacheEntry | undefined = result[key];
+  const entry = result[key] as CacheEntry | undefined;
 
   if (!entry) return null;
 
@@ -215,7 +216,7 @@ function migrateMemoryEntry(entry: MemoryEntry): MemoryEntry {
 // Memory storage (synced across devices)
 export async function getMemories(): Promise<MemoryEntry[]> {
   const result = await chrome.storage.sync.get(MEMORIES_KEY);
-  const raw = result[MEMORIES_KEY] || [];
+  const raw = (result[MEMORIES_KEY] || []) as MemoryEntry[];
   return raw.map(migrateMemoryEntry);
 }
 
@@ -326,7 +327,7 @@ export async function replaceMemories(newMemories: MemoryEntry[]): Promise<void>
 // Feedback history (local only, for reference)
 export async function getFeedbackHistory(): Promise<VideoFeedback[]> {
   const result = await chrome.storage.local.get(FEEDBACK_KEY);
-  return result[FEEDBACK_KEY] || [];
+  return (result[FEEDBACK_KEY] || []) as VideoFeedback[];
 }
 
 export async function addFeedback(feedback: VideoFeedback): Promise<void> {
@@ -427,7 +428,7 @@ const CHANNEL_STATS_KEY = 'vidpulse_channel_stats';
 
 export async function getChannelStats(): Promise<Record<string, ChannelStats>> {
   const result = await chrome.storage.local.get(CHANNEL_STATS_KEY);
-  return result[CHANNEL_STATS_KEY] || {};
+  return (result[CHANNEL_STATS_KEY] || {}) as Record<string, ChannelStats>;
 }
 
 export async function updateChannelStats(channelId: string, channelName: string, scores: { productivity: number; educational: number; entertainment: number; inspiring: number; creative: number }): Promise<ChannelStats> {
@@ -476,7 +477,7 @@ const LIKED_CHANNELS_KEY = 'vidpulse_liked_channels';
 
 export async function getLikedChannels(): Promise<Record<string, LikedChannel>> {
   const result = await chrome.storage.local.get(LIKED_CHANNELS_KEY);
-  return result[LIKED_CHANNELS_KEY] || {};
+  return (result[LIKED_CHANNELS_KEY] || {}) as Record<string, LikedChannel>;
 }
 
 export async function addLikedChannel(
@@ -485,7 +486,7 @@ export async function addLikedChannel(
   channelUrl: string,
   videoId: string,
   videoTitle: string,
-  scores?: { productivity: number; educational: number; entertainment: number }
+  scores?: { productivity: number; educational: number; entertainment: number; inspiring?: number; creative?: number }
 ): Promise<void> {
   const channels = await getLikedChannels();
   const now = Date.now();
@@ -503,6 +504,8 @@ export async function addLikedChannel(
         productivity: Math.round((ch.avgScores.productivity * (n - 1) + scores.productivity) / n),
         educational: Math.round((ch.avgScores.educational * (n - 1) + scores.educational) / n),
         entertainment: Math.round((ch.avgScores.entertainment * (n - 1) + scores.entertainment) / n),
+        inspiring: Math.round((ch.avgScores.inspiring * (n - 1) + (scores.inspiring ?? 0)) / n),
+        creative: Math.round((ch.avgScores.creative * (n - 1) + (scores.creative ?? 0)) / n),
       };
     }
   } else {
@@ -514,7 +517,13 @@ export async function addLikedChannel(
       likedVideoTitles: [videoTitle],
       firstLikedAt: now,
       lastLikedAt: now,
-      avgScores: scores,
+      avgScores: scores ? {
+        productivity: scores.productivity,
+        educational: scores.educational,
+        entertainment: scores.entertainment,
+        inspiring: scores.inspiring ?? 0,
+        creative: scores.creative ?? 0,
+      } : undefined,
     };
   }
 
@@ -549,13 +558,13 @@ function getTodayKey(): string {
 export async function getDailyStats(date?: string): Promise<DailyStats | null> {
   const key = date || getTodayKey();
   const result = await chrome.storage.local.get(DAILY_STATS_KEY);
-  const allStats = result[DAILY_STATS_KEY] || {};
+  const allStats = (result[DAILY_STATS_KEY] || {}) as Record<string, DailyStats>;
   return allStats[key] || null;
 }
 
 export async function getAllDailyStats(): Promise<Record<string, DailyStats>> {
   const result = await chrome.storage.local.get(DAILY_STATS_KEY);
-  return result[DAILY_STATS_KEY] || {};
+  return (result[DAILY_STATS_KEY] || {}) as Record<string, DailyStats>;
 }
 
 export async function updateDailyStats(
@@ -642,7 +651,8 @@ const DEFAULT_FOCUS_SCHEDULE: FocusSchedule = {
 
 export async function getFocusSchedule(): Promise<FocusSchedule> {
   const result = await chrome.storage.sync.get(FOCUS_SCHEDULE_KEY);
-  return { ...DEFAULT_FOCUS_SCHEDULE, ...result[FOCUS_SCHEDULE_KEY] };
+  const stored = (result[FOCUS_SCHEDULE_KEY] || {}) as Partial<FocusSchedule>;
+  return { ...DEFAULT_FOCUS_SCHEDULE, ...stored };
 }
 
 export async function saveFocusSchedule(schedule: Partial<FocusSchedule>): Promise<void> {
@@ -674,13 +684,13 @@ const NOTES_KEY = 'vidpulse_notes';
 
 export async function getNotesForVideo(videoId: string): Promise<VideoNote[]> {
   const result = await chrome.storage.local.get(NOTES_KEY);
-  const allNotes: Record<string, VideoNote[]> = result[NOTES_KEY] || {};
+  const allNotes = (result[NOTES_KEY] || {}) as Record<string, VideoNote[]>;
   return (allNotes[videoId] || []).sort((a, b) => a.timestamp - b.timestamp);
 }
 
 export async function getAllNotesIndex(): Promise<NotesIndex[]> {
   const result = await chrome.storage.local.get(NOTES_KEY);
-  const allNotes: Record<string, VideoNote[]> = result[NOTES_KEY] || {};
+  const allNotes = (result[NOTES_KEY] || {}) as Record<string, VideoNote[]>;
 
   const index: NotesIndex[] = [];
   for (const [videoId, notes] of Object.entries(allNotes)) {
@@ -701,12 +711,12 @@ export async function getAllNotesIndex(): Promise<NotesIndex[]> {
 
 export async function getAllNotes(): Promise<Record<string, VideoNote[]>> {
   const result = await chrome.storage.local.get(NOTES_KEY);
-  return result[NOTES_KEY] || {};
+  return (result[NOTES_KEY] || {}) as Record<string, VideoNote[]>;
 }
 
 export async function addNote(note: VideoNote): Promise<void> {
   const result = await chrome.storage.local.get(NOTES_KEY);
-  const allNotes: Record<string, VideoNote[]> = result[NOTES_KEY] || {};
+  const allNotes = (result[NOTES_KEY] || {}) as Record<string, VideoNote[]>;
 
   if (!allNotes[note.videoId]) {
     allNotes[note.videoId] = [];
@@ -718,7 +728,7 @@ export async function addNote(note: VideoNote): Promise<void> {
 
 export async function updateNote(videoId: string, noteId: string, content: string): Promise<void> {
   const result = await chrome.storage.local.get(NOTES_KEY);
-  const allNotes: Record<string, VideoNote[]> = result[NOTES_KEY] || {};
+  const allNotes = (result[NOTES_KEY] || {}) as Record<string, VideoNote[]>;
 
   const notes = allNotes[videoId];
   if (!notes) return;
@@ -733,7 +743,7 @@ export async function updateNote(videoId: string, noteId: string, content: strin
 
 export async function deleteNote(videoId: string, noteId: string): Promise<void> {
   const result = await chrome.storage.local.get(NOTES_KEY);
-  const allNotes: Record<string, VideoNote[]> = result[NOTES_KEY] || {};
+  const allNotes = (result[NOTES_KEY] || {}) as Record<string, VideoNote[]>;
 
   if (!allNotes[videoId]) return;
 
@@ -749,7 +759,7 @@ export async function deleteNote(videoId: string, noteId: string): Promise<void>
 
 export async function deleteAllNotesForVideo(videoId: string): Promise<void> {
   const result = await chrome.storage.local.get(NOTES_KEY);
-  const allNotes: Record<string, VideoNote[]> = result[NOTES_KEY] || {};
+  const allNotes = (result[NOTES_KEY] || {}) as Record<string, VideoNote[]>;
 
   delete allNotes[videoId];
   await chrome.storage.local.set({ [NOTES_KEY]: allNotes });
