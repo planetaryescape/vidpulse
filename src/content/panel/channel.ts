@@ -1,5 +1,6 @@
 import { MessageType, sendMessage } from "../../shared/messages";
 import type { ChannelStats } from "../../shared/types";
+import { queryFirst, YT_SELECTORS } from "../selectors";
 import { getChannelStats } from "../storage-proxy";
 
 export function getChannelInfo(): {
@@ -7,8 +8,8 @@ export function getChannelInfo(): {
 	channelName: string;
 	channelUrl: string;
 } | null {
-	const channelLink = document.querySelector(
-		"ytd-video-owner-renderer a.yt-simple-endpoint",
+	const channelLink = queryFirst(
+		YT_SELECTORS.CHANNEL_LINK,
 	) as HTMLAnchorElement | null;
 	if (channelLink) {
 		const href = channelLink.href;
@@ -17,6 +18,22 @@ export function getChannelInfo(): {
 		const channelName = channelLink.textContent?.trim() || "Unknown Channel";
 		return { channelId, channelName, channelUrl: href };
 	}
+
+	// Fallback: try meta tags
+	const channelMeta = document.querySelector(
+		YT_SELECTORS.CHANNEL_META,
+	) as HTMLMetaElement | null;
+	const nameMeta = document.querySelector(
+		YT_SELECTORS.CHANNEL_NAME_META,
+	) as HTMLLinkElement | null;
+	if (channelMeta) {
+		return {
+			channelId: channelMeta.content,
+			channelName: nameMeta?.getAttribute("content") || "Unknown Channel",
+			channelUrl: "",
+		};
+	}
+
 	return null;
 }
 
@@ -24,7 +41,7 @@ export function getSubscriptionStatus():
 	| "subscribed"
 	| "not_subscribed"
 	| "unknown" {
-	const subscribeBtn = document.querySelector("ytd-subscribe-button-renderer");
+	const subscribeBtn = queryFirst(YT_SELECTORS.SUBSCRIBE_BTN);
 	if (!subscribeBtn) return "unknown";
 
 	const btnText = subscribeBtn.textContent?.toLowerCase() || "";

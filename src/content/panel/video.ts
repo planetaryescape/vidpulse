@@ -1,7 +1,7 @@
+import { queryFirst, YT_SELECTORS } from "../selectors";
+
 export function getVideoTitle(): string {
-	const titleEl = document.querySelector(
-		"h1.ytd-video-primary-info-renderer yt-formatted-string",
-	);
+	const titleEl = queryFirst(YT_SELECTORS.VIDEO_TITLE);
 	return titleEl?.textContent || document.title.replace(" - YouTube", "");
 }
 

@@ -4,6 +4,7 @@ import type {
 } from "../shared/messages";
 import { MessageType, sendMessage } from "../shared/messages";
 import type { VideoAnalysis } from "../shared/types";
+import { queryAll, queryFirst, YT_SELECTORS } from "./selectors";
 
 const PLAYLIST_PANEL_ID = "vidpulse-playlist-panel";
 const ANALYZE_BTN_ID = "vidpulse-analyze-playlist";
@@ -40,16 +41,24 @@ export function extractPlaylistId(): string | null {
 
 function extractPlaylistVideos(): PlaylistVideo[] {
 	const videos: PlaylistVideo[] = [];
-	const videoElements = document.querySelectorAll(
-		"ytd-playlist-video-renderer",
-	);
+	const videoElements = queryAll(YT_SELECTORS.PLAYLIST_VIDEO);
 
 	videoElements.forEach((el) => {
-		const linkEl = el.querySelector("a#video-title") as HTMLAnchorElement;
+		// Try multiple selectors for video title link
+		let linkEl: HTMLAnchorElement | null = null;
+		for (const sel of YT_SELECTORS.VIDEO_TITLE_LINK) {
+			linkEl = el.querySelector(sel) as HTMLAnchorElement | null;
+			if (linkEl) break;
+		}
+
 		const thumbEl = el.querySelector("img") as HTMLImageElement;
-		const durationEl = el.querySelector(
-			"span.ytd-thumbnail-overlay-time-status-renderer",
-		) as HTMLSpanElement;
+
+		// Try multiple selectors for duration
+		let durationEl: HTMLSpanElement | null = null;
+		for (const sel of YT_SELECTORS.DURATION_SPAN) {
+			durationEl = el.querySelector(sel) as HTMLSpanElement | null;
+			if (durationEl) break;
+		}
 
 		if (linkEl) {
 			const href = linkEl.href || "";
@@ -357,16 +366,25 @@ async function analyzePlaylist(): Promise<void> {
 	analysisInProgress = false;
 }
 
+let injectAttempts = 0;
+const MAX_INJECT_ATTEMPTS = 5;
+
 function injectAnalyzeButton(): void {
 	if (document.getElementById(ANALYZE_BTN_ID)) return;
 
-	// Find playlist header area
-	const headerArea = document.querySelector("ytd-playlist-header-renderer");
+	// Find playlist header area with fallback selectors
+	const headerArea = queryFirst(YT_SELECTORS.PLAYLIST_HEADER);
 	if (!headerArea) {
-		// Retry after a short delay
-		setTimeout(injectAnalyzeButton, 500);
+		// Retry with exponential backoff (similar to container finder pattern)
+		if (injectAttempts < MAX_INJECT_ATTEMPTS) {
+			const delay = 500 * (injectAttempts + 1);
+			injectAttempts++;
+			setTimeout(injectAnalyzeButton, delay);
+		}
 		return;
 	}
+
+	injectAttempts = 0; // Reset for next navigation
 
 	const btn = document.createElement("button");
 	btn.id = ANALYZE_BTN_ID;
@@ -375,8 +393,13 @@ function injectAnalyzeButton(): void {
 	btn.textContent = "Analyze Playlist";
 	btn.addEventListener("click", analyzePlaylist);
 
-	// Find the buttons area or append to header
-	const menuContainer = headerArea.querySelector("ytd-menu-renderer");
+	// Find the buttons area or append to header - try multiple selectors
+	let menuContainer: Element | null = null;
+	for (const sel of YT_SELECTORS.PLAYLIST_MENU) {
+		menuContainer = headerArea.querySelector(sel);
+		if (menuContainer) break;
+	}
+
 	if (menuContainer) {
 		menuContainer.insertBefore(btn, menuContainer.firstChild);
 	} else {
