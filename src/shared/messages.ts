@@ -16,6 +16,7 @@ export const MessageType = {
 	ANALYZE_VIDEO: "ANALYZE_VIDEO",
 	CHECK_API_KEY: "CHECK_API_KEY",
 	VALIDATE_API_KEY: "VALIDATE_API_KEY",
+	VALIDATE_BRAVE_API_KEY: "VALIDATE_BRAVE_API_KEY",
 	GET_CACHED: "GET_CACHED",
 	OPEN_OPTIONS: "OPEN_OPTIONS",
 	SUBMIT_FEEDBACK: "SUBMIT_FEEDBACK",
@@ -59,6 +60,11 @@ export interface CheckApiKeyRequest {
 
 export interface ValidateApiKeyRequest {
 	type: typeof MessageType.VALIDATE_API_KEY;
+	apiKey: string;
+}
+
+export interface ValidateBraveApiKeyRequest {
+	type: typeof MessageType.VALIDATE_BRAVE_API_KEY;
 	apiKey: string;
 }
 
@@ -206,6 +212,7 @@ export type Message =
 	| AnalyzeVideoRequest
 	| CheckApiKeyRequest
 	| ValidateApiKeyRequest
+	| ValidateBraveApiKeyRequest
 	| GetCachedRequest
 	| OpenOptionsRequest
 	| SubmitFeedbackRequest
@@ -241,6 +248,7 @@ export interface AnalyzeVideoResponse {
 
 export interface CheckApiKeyResponse {
 	hasKey: boolean;
+	invalid?: boolean;
 }
 
 export interface ValidateApiKeyResponse {
