@@ -48,6 +48,14 @@ export const YT_SELECTORS = {
 		"ytd-thumbnail-overlay-time-status-renderer span",
 	],
 
+	// Video player container
+	PLAYER_CONTAINER: [
+		"#movie_player",
+		"#player-container-inner",
+		"ytd-player #container",
+		".html5-video-player",
+	],
+
 	// Meta fallbacks (single selectors, not arrays)
 	CHANNEL_META: 'meta[itemprop="channelId"]',
 	CHANNEL_NAME_META: 'span[itemprop="author"] link[itemprop="name"]',
