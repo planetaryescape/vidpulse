@@ -43,11 +43,16 @@ export interface VideoAnalysis {
 		inspiring: number;
 		creative: number;
 		relevance?: number; // relevance to user interests
+		// Political leaning (only present if video has political content)
+		politicalX?: number; // -100 (left) to 100 (right), undefined if apolitical
+		politicalY?: number; // -100 (libertarian) to 100 (authoritarian), undefined if apolitical
+		hasPoliticalContent?: boolean; // explicit flag - false means truly apolitical
 	};
 	verdict: "worth_it" | "maybe" | "skip";
 	matchesInterests?: boolean;
 	enjoymentConfidence?: number; // 0-100: AI's confidence you'll enjoy based on learned preferences
 	keyPoints?: KeyPoint[]; // Timestamped breakdown of key sections
+	perspective?: string; // e.g., "startup founder", "academic", "critical"
 }
 
 // Cache entry with timestamp and preferences version
@@ -115,7 +120,7 @@ export interface VideoFeedback {
 
 // Panel state for UI
 export interface PanelState {
-	status: "loading" | "ready" | "error" | "no_key";
+	status: "loading" | "partial" | "ready" | "error" | "no_key";
 	videoId: string;
 	analysis?: VideoAnalysis;
 	error?: string;
@@ -271,4 +276,33 @@ export interface NotesIndex {
 	videoUrl: string;
 	noteCount: number;
 	lastNoteAt: number;
+}
+
+// Political position tracking (aggregate of all liked/disliked political content)
+export interface PoliticalPosition {
+	x: number; // -100 (left) to 100 (right)
+	y: number; // -100 (libertarian) to 100 (authoritarian)
+	sampleCount: number; // only counts videos WITH political content
+	lastUpdated: number;
+}
+
+// Daily snapshot for historical political position tracking
+export interface PoliticalSnapshot {
+	date: string; // YYYY-MM-DD
+	x: number;
+	y: number;
+	sampleCount: number;
+	videosContributed: number; // videos that day with political content
+}
+
+// Blind spot analysis result
+export interface BlindSpotAnalysis {
+	narrowPerspectives: Array<{
+		topic: string;
+		videoCount: number;
+		perspectives: string[];
+		missing: string[];
+	}>;
+	topicCoverage: number; // 0-100%
+	lastAnalyzed: number;
 }

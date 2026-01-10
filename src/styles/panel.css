@@ -1718,3 +1718,106 @@
 	color: var(--vp-text-tertiary);
 	margin-top: calc(6px * var(--vp-font-scale));
 }
+
+/* Political badge styles */
+.vp-political-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: calc(2px * var(--vp-font-scale)) calc(6px * var(--vp-font-scale));
+	border-radius: 4px;
+	font-size: calc(10px * var(--vp-font-scale));
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	white-space: nowrap;
+	cursor: help;
+}
+
+.vp-political-apolitical {
+	background: var(--vp-bg-elevated);
+	color: var(--vp-text-tertiary);
+	border: 1px solid var(--vp-border);
+}
+
+.vp-political-center {
+	background: #6b7280;
+	color: #fff;
+}
+
+.vp-political-auth-left {
+	background: #a855f7;
+	color: #fff;
+}
+
+.vp-political-auth-right {
+	background: #3b82f6;
+	color: #fff;
+}
+
+.vp-political-lib-left {
+	background: #22c55e;
+	color: #fff;
+}
+
+.vp-political-lib-right {
+	background: #f59e0b;
+	color: #fff;
+}
+
+/* Mini compass container */
+.vp-mini-compass {
+	display: flex;
+	justify-content: center;
+	margin: calc(12px * var(--vp-font-scale)) 0;
+}
+
+.vp-mini-compass svg {
+	border-radius: 4px;
+	background: #1f1f1f;
+}
+
+/* Analysis Tab Styles */
+.vp-analysis-panel {
+	padding: calc(12px * var(--vp-font-scale));
+}
+
+.vp-analysis-section {
+	margin-bottom: calc(16px * var(--vp-font-scale));
+}
+
+.vp-analysis-title {
+	font-size: calc(11px * var(--vp-font-scale));
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	color: var(--vp-text-secondary);
+	margin: 0 0 calc(8px * var(--vp-font-scale)) 0;
+}
+
+.vp-analysis-desc {
+	font-size: calc(12px * var(--vp-font-scale));
+	color: var(--vp-text-primary);
+	margin: calc(8px * var(--vp-font-scale)) 0 0 0;
+	text-align: center;
+}
+
+.vp-analysis-perspective {
+	font-size: calc(12px * var(--vp-font-scale));
+	color: var(--vp-text-primary);
+	margin: 0;
+	padding: calc(8px * var(--vp-font-scale)) calc(12px * var(--vp-font-scale));
+	background: var(--vp-bg-elevated);
+	border-radius: 6px;
+	border-left: 3px solid var(--vp-accent);
+}
+
+.vp-analysis-confidence {
+	padding-top: calc(12px * var(--vp-font-scale));
+	border-top: 1px solid var(--vp-border);
+}
+
+.vp-confidence-label {
+	font-size: calc(10px * var(--vp-font-scale));
+	color: var(--vp-text-tertiary);
+}
