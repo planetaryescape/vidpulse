@@ -1,3 +1,4 @@
+import { queryFirst, YT_SELECTORS } from "../selectors";
 import { FLOATING_CONTAINER_ID } from "./constants";
 
 function createFloatingContainer(): Element {
@@ -24,31 +25,15 @@ export async function findOrCreateContainer(): Promise<{
 	container: Element;
 	isFloating: boolean;
 }> {
-	const selectors = [
-		"#secondary",
-		"#secondary-inner",
-		"ytd-watch-flexy #secondary",
-		"#related",
-		"#below",
-		"ytd-watch-metadata",
-	];
-
 	for (let attempt = 0; attempt < 5; attempt++) {
-		for (const selector of selectors) {
-			const el = document.querySelector(selector);
-			if (el) {
-				console.log(
-					`VidPulse: Found container "${selector}" on attempt ${attempt + 1}`,
-				);
-				return { container: el, isFloating: false };
-			}
+		const el = queryFirst(YT_SELECTORS.SIDEBAR);
+		if (el) {
+			return { container: el, isFloating: false };
 		}
 
 		const delay = 500 * (attempt + 1);
-		console.log(`VidPulse: Container not found, retrying in ${delay}ms...`);
 		await new Promise((r) => setTimeout(r, delay));
 	}
 
-	console.log("VidPulse: Using floating container fallback");
 	return { container: createFloatingContainer(), isFloating: true };
 }

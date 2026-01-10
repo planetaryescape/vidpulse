@@ -17,6 +17,8 @@ import {
 	triggerFeedback,
 	triggerRegenerate,
 } from "./panel";
+import { getChannelInfo } from "./panel/channel";
+import { getVideoTitle } from "./panel/video";
 import { cleanupPlaylist, handlePlaylistPage } from "./playlist";
 import {
 	addVideoToSession,
@@ -55,44 +57,6 @@ async function checkGuardian(analysis: VideoAnalysis): Promise<void> {
 			},
 		);
 	}
-}
-
-function getVideoTitle(): string {
-	const titleEl = document.querySelector(
-		"h1.ytd-video-primary-info-renderer yt-formatted-string",
-	);
-	return titleEl?.textContent || document.title.replace(" - YouTube", "");
-}
-
-function getChannelInfo(): { channelId: string; channelName: string } | null {
-	// Try to get channel info from various YouTube elements
-	const channelLink = document.querySelector(
-		"ytd-video-owner-renderer a.yt-simple-endpoint",
-	) as HTMLAnchorElement | null;
-	if (channelLink) {
-		const href = channelLink.href;
-		// Extract channel ID from URL like /channel/UCxxx or /@username
-		const channelMatch = href.match(/\/(channel|c|user|@)\/([^/?]+)/);
-		const channelId = channelMatch ? channelMatch[2] : href;
-		const channelName = channelLink.textContent?.trim() || "Unknown Channel";
-		return { channelId, channelName };
-	}
-
-	// Fallback: try meta tags
-	const channelMeta = document.querySelector(
-		'meta[itemprop="channelId"]',
-	) as HTMLMetaElement | null;
-	const nameMeta = document.querySelector(
-		'span[itemprop="author"] link[itemprop="name"]',
-	) as HTMLLinkElement | null;
-	if (channelMeta) {
-		return {
-			channelId: channelMeta.content,
-			channelName: nameMeta?.getAttribute("content") || "Unknown Channel",
-		};
-	}
-
-	return null;
 }
 
 async function updateSessionVideoWithAnalysis(
@@ -287,7 +251,6 @@ async function handleNavigation(
 // Listen for re-detection requests from background (e.g., when user clicks extension icon)
 chrome.runtime.onMessage.addListener((message) => {
 	if (message.type === "RE_DETECT") {
-		console.log("VidPulse: RE_DETECT received, forcing re-detection");
 		currentVideoId = null; // Reset to force re-detection
 		const videoId = extractVideoId(window.location.href);
 		if (videoId) {
@@ -344,6 +307,5 @@ function setupKeyboardShortcuts(): void {
 }
 
 // Initialize
-console.log("VidPulse: Content script loaded");
 setupNavigationListener(handleNavigation);
 setupKeyboardShortcuts();
