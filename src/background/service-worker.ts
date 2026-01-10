@@ -64,13 +64,42 @@ function createGenAI(apiKey: string): GoogleGenAI {
   return new GoogleGenAI({ apiKey });
 }
 
+// Retry with exponential backoff for API failures
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  options?: { retries?: number; delay?: number; backoff?: number }
+): Promise<T> {
+  const { retries = 3, delay = 1000, backoff = 2 } = options || {};
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (attempt === retries) throw error;
+
+      // Rate limit (429) → longer backoff
+      const isRateLimit = error instanceof Error &&
+        (error.message.includes('429') || error.message.includes('rate'));
+
+      const waitTime = isRateLimit
+        ? delay * Math.pow(backoff, attempt) * 2
+        : delay * Math.pow(backoff, attempt);
+
+      await new Promise(r => setTimeout(r, waitTime));
+    }
+  }
+  throw new Error('Unreachable');
+}
+
 // Shared Gemini API helpers
 async function generateText(genAI: GoogleGenAI, model: string, prompt: string): Promise<string> {
-  const response = await genAI.models.generateContent({
-    model,
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+  return withRetry(async () => {
+    const response = await genAI.models.generateContent({
+      model,
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    });
+    return response.text || '';
   });
-  return response.text || '';
 }
 
 async function generateJson<T>(genAI: GoogleGenAI, model: string, prompt: string, fallback: T): Promise<T> {
@@ -107,20 +136,22 @@ async function readVideoContent(
   settings: Settings,
   videoUrl: string
 ): Promise<string> {
-  const response = await genAI.models.generateContent({
-    model: settings.models.videoReading,
-    contents: [
-      {
-        role: 'user',
-        parts: [
+  const text = await withRetry(
+    async () => {
+      const response = await genAI.models.generateContent({
+        model: settings.models.videoReading,
+        contents: [
           {
-            fileData: {
-              fileUri: videoUrl,
-              mimeType: 'video/mp4',
-            },
-          },
-          {
-            text: `Watch this video and provide a detailed description of its content.
+            role: 'user',
+            parts: [
+              {
+                fileData: {
+                  fileUri: videoUrl,
+                  mimeType: 'video/mp4',
+                },
+              },
+              {
+                text: `Watch this video and provide a detailed description of its content.
 Include:
 - Main topics and themes covered
 - Key points and arguments made
@@ -129,13 +160,16 @@ Include:
 - Any notable quotes or moments
 
 Provide a thorough transcript-like description that captures the essence of the video.`,
+              },
+            ],
           },
         ],
-      },
-    ],
-  });
+      });
+      return response.text;
+    },
+    { retries: 3, delay: 2000 }
+  );
 
-  const text = response.text;
   if (!text) {
     throw new Error('Empty response from video reading');
   }
@@ -633,33 +667,38 @@ function generateSearchQuery(summary: string, tags: string[]): string {
 async function searchBrave(query: string, apiKey: string): Promise<RelatedResource[]> {
   const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=8`;
 
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Accept': 'application/json',
-      'Accept-Encoding': 'gzip',
-      'X-Subscription-Token': apiKey,
+  return withRetry(
+    async () => {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Accept-Encoding': 'gzip',
+          'X-Subscription-Token': apiKey,
+        },
+        credentials: 'omit',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Brave Search failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.web?.results) {
+        return [];
+      }
+
+      return data.web.results.map((r: { title: string; url: string; description: string; profile?: { img?: string } }) => ({
+        title: r.title,
+        url: r.url,
+        description: r.description || '',
+        source: new URL(r.url).hostname.replace('www.', ''),
+        favicon: r.profile?.img || `https://www.google.com/s2/favicons?domain=${new URL(r.url).hostname}`,
+      }));
     },
-    credentials: 'omit',
-  });
-
-  if (!response.ok) {
-    throw new Error(`Brave Search failed: ${response.status}`);
-  }
-
-  const data = await response.json();
-
-  if (!data.web?.results) {
-    return [];
-  }
-
-  return data.web.results.map((r: { title: string; url: string; description: string; profile?: { img?: string } }) => ({
-    title: r.title,
-    url: r.url,
-    description: r.description || '',
-    source: new URL(r.url).hostname.replace('www.', ''),
-    favicon: r.profile?.img || `https://www.google.com/s2/favicons?domain=${new URL(r.url).hostname}`,
-  }));
+    { retries: 2, delay: 500 }
+  );
 }
 
 async function getRelatedCache(videoId: string): Promise<RelatedContentCache | null> {
