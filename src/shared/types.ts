@@ -1,18 +1,26 @@
-// Available Gemini models
-export type GeminiModel =
-	| "gemini-3-flash-preview"
-	| "gemini-2.0-flash"
-	| "gemini-1.5-pro"
-	| "gemini-1.5-flash";
+// Video-capable models (Gemini only - multimodal required for YouTube URLs)
+export type VideoModel =
+	| "google/gemini-3-flash-preview"
+	| "google/gemini-2.5-flash"
+	| "google/gemini-2.0-flash-001"
+	| "google/gemini-2.5-pro";
+
+// Text models (any provider via OpenRouter)
+export type TextModel =
+	| VideoModel
+	| "anthropic/claude-sonnet-4"
+	| "anthropic/claude-haiku-4.5"
+	| "openai/gpt-4.5-preview"
+	| "openai/gpt-4o-mini";
 
 // Per-operation model configuration
 export interface ModelConfig {
-	videoReading: GeminiModel; // Must be multimodal (video-capable)
-	summarization: GeminiModel;
-	recommendationReasoning: GeminiModel;
-	tagGeneration: GeminiModel;
-	transcriptAnalysis: GeminiModel;
-	memoryExtraction: GeminiModel;
+	videoReading: VideoModel; // Must be Gemini (video-capable)
+	summarization: TextModel;
+	recommendationReasoning: TextModel;
+	tagGeneration: TextModel;
+	transcriptAnalysis: TextModel;
+	memoryExtraction: TextModel;
 }
 
 // Timestamped key point from video
@@ -23,7 +31,7 @@ export interface KeyPoint {
 	description: string; // Detailed description of what's covered
 }
 
-// Analysis result from Gemini
+// Analysis result from AI
 export interface VideoAnalysis {
 	summary: string; // WHAT: describes what the video is about
 	reason: string; // WHY: explains why user should/shouldn't watch
