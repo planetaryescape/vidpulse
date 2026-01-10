@@ -13,10 +13,11 @@ import {
 	saveSettings,
 } from "../shared/storage";
 import type {
-	GeminiModel,
 	LikedChannel,
 	NotesIndex,
 	Settings,
+	TextModel,
+	VideoModel,
 } from "../shared/types";
 
 // DOM elements - API Config
@@ -27,8 +28,38 @@ const braveApiKeyInput = document.getElementById(
 const cacheExpiryInput = document.getElementById(
 	"cacheExpiry",
 ) as HTMLInputElement;
-const saveApiBtn = document.getElementById("saveApiBtn") as HTMLButtonElement;
-const apiStatusEl = document.getElementById("apiStatus") as HTMLDivElement;
+
+// OpenRouter API key buttons/status
+const validateOpenRouterBtn = document.getElementById(
+	"validateOpenRouterBtn",
+) as HTMLButtonElement;
+const saveOpenRouterBtn = document.getElementById(
+	"saveOpenRouterBtn",
+) as HTMLButtonElement;
+const clearOpenRouterBtn = document.getElementById(
+	"clearOpenRouterBtn",
+) as HTMLButtonElement;
+const openRouterStatusEl = document.getElementById(
+	"openRouterStatus",
+) as HTMLDivElement;
+
+// Brave API key buttons/status
+const validateBraveBtn = document.getElementById(
+	"validateBraveBtn",
+) as HTMLButtonElement;
+const saveBraveBtn = document.getElementById(
+	"saveBraveBtn",
+) as HTMLButtonElement;
+const clearBraveBtn = document.getElementById(
+	"clearBraveBtn",
+) as HTMLButtonElement;
+const braveStatusEl = document.getElementById("braveStatus") as HTMLDivElement;
+
+// Cache settings
+const saveCacheBtn = document.getElementById(
+	"saveCacheBtn",
+) as HTMLButtonElement;
+const cacheStatusEl = document.getElementById("cacheStatus") as HTMLDivElement;
 
 // DOM elements - Model selectors
 const modelVideoReadingSelect = document.getElementById(
@@ -561,59 +592,161 @@ async function loadSettings(): Promise<void> {
 	renderDigest();
 }
 
-async function handleSaveApiConfig(): Promise<void> {
+// OpenRouter API key handlers
+async function handleValidateOpenRouter(): Promise<void> {
 	const apiKey = apiKeyInput.value.trim();
-	const braveApiKey = braveApiKeyInput.value.trim();
-	const cacheExpiry = parseInt(cacheExpiryInput.value, 10) || 365;
-
 	if (!apiKey) {
-		showStatus(apiStatusEl, "API key is required", "error");
+		showStatus(openRouterStatusEl, "API key is required", "error");
 		return;
 	}
 
-	if (cacheExpiry < 1 || cacheExpiry > 365) {
-		showStatus(
-			apiStatusEl,
-			"Cache duration must be between 1 and 365 days",
-			"error",
-		);
-		return;
-	}
-
-	// Validate API key before saving
-	saveApiBtn.disabled = true;
-	apiStatusEl.textContent = "Validating API key...";
-	apiStatusEl.className = "status";
+	validateOpenRouterBtn.disabled = true;
+	openRouterStatusEl.textContent = "Validating...";
+	openRouterStatusEl.className = "status";
 
 	try {
 		const response = await chrome.runtime.sendMessage({
 			type: "VALIDATE_API_KEY",
 			apiKey,
 		});
-		if (!response.valid) {
-			showStatus(apiStatusEl, response.error || "Invalid API key", "error");
-			saveApiBtn.disabled = false;
-			return;
+		if (response.valid) {
+			showStatus(openRouterStatusEl, "Valid API key!", "success");
+		} else {
+			showStatus(
+				openRouterStatusEl,
+				response.error || "Invalid API key",
+				"error",
+			);
 		}
-
-		await saveSettings({ apiKey, braveApiKey, cacheExpiry });
-		showStatus(apiStatusEl, "API settings saved!", "success");
 	} catch (error) {
-		showStatus(apiStatusEl, "Failed to validate API key", "error");
+		showStatus(openRouterStatusEl, "Validation failed", "error");
+		console.error("Validation error:", error);
+	} finally {
+		validateOpenRouterBtn.disabled = false;
+	}
+}
+
+async function handleSaveOpenRouter(): Promise<void> {
+	const apiKey = apiKeyInput.value.trim();
+	if (!apiKey) {
+		showStatus(openRouterStatusEl, "API key is required", "error");
+		return;
+	}
+
+	saveOpenRouterBtn.disabled = true;
+	try {
+		await saveSettings({ apiKey });
+		showStatus(openRouterStatusEl, "Saved!", "success");
+	} catch (error) {
+		showStatus(openRouterStatusEl, "Failed to save", "error");
 		console.error("Save error:", error);
 	} finally {
-		saveApiBtn.disabled = false;
+		saveOpenRouterBtn.disabled = false;
+	}
+}
+
+// Brave API key handlers
+async function handleValidateBrave(): Promise<void> {
+	const apiKey = braveApiKeyInput.value.trim();
+	if (!apiKey) {
+		showStatus(braveStatusEl, "API key is required", "error");
+		return;
+	}
+
+	validateBraveBtn.disabled = true;
+	braveStatusEl.textContent = "Validating...";
+	braveStatusEl.className = "status";
+
+	try {
+		const response = await chrome.runtime.sendMessage({
+			type: "VALIDATE_BRAVE_API_KEY",
+			apiKey,
+		});
+		if (response.valid) {
+			showStatus(braveStatusEl, "Valid API key!", "success");
+		} else {
+			showStatus(braveStatusEl, response.error || "Invalid API key", "error");
+		}
+	} catch (error) {
+		showStatus(braveStatusEl, "Validation failed", "error");
+		console.error("Validation error:", error);
+	} finally {
+		validateBraveBtn.disabled = false;
+	}
+}
+
+async function handleSaveBrave(): Promise<void> {
+	const braveApiKey = braveApiKeyInput.value.trim();
+	saveBraveBtn.disabled = true;
+	try {
+		await saveSettings({ braveApiKey });
+		showStatus(braveStatusEl, "Saved!", "success");
+	} catch (error) {
+		showStatus(braveStatusEl, "Failed to save", "error");
+		console.error("Save error:", error);
+	} finally {
+		saveBraveBtn.disabled = false;
+	}
+}
+
+// Cache settings handler
+async function handleSaveCache(): Promise<void> {
+	const cacheExpiry = parseInt(cacheExpiryInput.value, 10) || 365;
+
+	if (cacheExpiry < 1 || cacheExpiry > 365) {
+		showStatus(cacheStatusEl, "Must be between 1 and 365 days", "error");
+		return;
+	}
+
+	saveCacheBtn.disabled = true;
+	try {
+		await saveSettings({ cacheExpiry });
+		showStatus(cacheStatusEl, "Saved!", "success");
+	} catch (error) {
+		showStatus(cacheStatusEl, "Failed to save", "error");
+		console.error("Save error:", error);
+	} finally {
+		saveCacheBtn.disabled = false;
+	}
+}
+
+// Clear API key handlers
+async function handleClearOpenRouter(): Promise<void> {
+	if (!confirm("Are you sure you want to clear the OpenRouter API key?")) {
+		return;
+	}
+	try {
+		await saveSettings({ apiKey: "" });
+		apiKeyInput.value = "";
+		showStatus(openRouterStatusEl, "Cleared!", "success");
+	} catch (error) {
+		showStatus(openRouterStatusEl, "Failed to clear", "error");
+		console.error("Clear error:", error);
+	}
+}
+
+async function handleClearBrave(): Promise<void> {
+	if (!confirm("Are you sure you want to clear the Brave API key?")) {
+		return;
+	}
+	try {
+		await saveSettings({ braveApiKey: "" });
+		braveApiKeyInput.value = "";
+		showStatus(braveStatusEl, "Cleared!", "success");
+	} catch (error) {
+		showStatus(braveStatusEl, "Failed to clear", "error");
+		console.error("Clear error:", error);
 	}
 }
 
 async function handleSaveModels(): Promise<void> {
 	const models = {
-		videoReading: modelVideoReadingSelect.value as GeminiModel,
-		summarization: modelSummarizationSelect.value as GeminiModel,
-		recommendationReasoning: modelReasoningSelect.value as GeminiModel,
-		tagGeneration: modelTagsSelect.value as GeminiModel,
-		transcriptAnalysis: modelAnalysisSelect.value as GeminiModel,
-		memoryExtraction: modelMemorySelect.value as GeminiModel,
+		videoReading: modelVideoReadingSelect.value as VideoModel,
+		summarization: modelSummarizationSelect.value as TextModel,
+		recommendationReasoning: modelReasoningSelect.value as TextModel,
+		tagGeneration: modelTagsSelect.value as TextModel,
+		transcriptAnalysis: modelAnalysisSelect.value as TextModel,
+		memoryExtraction: modelMemorySelect.value as TextModel,
 	};
 
 	try {
@@ -1147,7 +1280,15 @@ async function renderNotes(): Promise<void> {
 	selectedVideoId = null;
 }
 
-saveApiBtn.addEventListener("click", handleSaveApiConfig);
+// API key event listeners
+validateOpenRouterBtn.addEventListener("click", handleValidateOpenRouter);
+saveOpenRouterBtn.addEventListener("click", handleSaveOpenRouter);
+clearOpenRouterBtn.addEventListener("click", handleClearOpenRouter);
+validateBraveBtn.addEventListener("click", handleValidateBrave);
+saveBraveBtn.addEventListener("click", handleSaveBrave);
+clearBraveBtn.addEventListener("click", handleClearBrave);
+saveCacheBtn.addEventListener("click", handleSaveCache);
+
 saveModelsBtn.addEventListener("click", handleSaveModels);
 savePersonalizationBtn.addEventListener("click", handleSavePersonalization);
 resetAutoSyncBtn.addEventListener("click", handleResetAutoSync);
