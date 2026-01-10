@@ -64,10 +64,9 @@ export async function setSessionIntent(intent: WatchIntent): Promise<void> {
   });
 }
 
-export async function getChannelStats(channelId: string): Promise<ChannelStats | null> {
+export async function getChannelStats(): Promise<Record<string, ChannelStats>> {
   const response = await sendMessage<StorageGetChannelStatsResponse>({
     type: MessageType.STORAGE_GET_CHANNEL_STATS,
-    channelId,
   });
   return response.stats;
 }
