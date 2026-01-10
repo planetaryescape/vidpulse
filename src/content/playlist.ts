@@ -302,6 +302,7 @@ async function analyzePlaylist(): Promise<void> {
         // Analyze video
         const result = await sendMessage<AnalyzeVideoResponse>({
           type: MessageType.ANALYZE_VIDEO,
+          videoId: video.videoId,
           videoUrl: `https://www.youtube.com/watch?v=${video.videoId}`,
         });
 
