@@ -51,6 +51,7 @@ import {
 	updateChannelStats,
 	updateDailyStats,
 	updateLikedChannelSubscription,
+	updatePoliticalPosition,
 	updateSessionActivity,
 } from "../shared/storage";
 import type {
@@ -354,6 +355,52 @@ Respond with ONLY valid JSON:
 		settings.models.transcriptAnalysis,
 		prompt,
 		defaultResult,
+	);
+}
+
+// Political content analysis
+interface PoliticalAnalysisResult {
+	hasPoliticalContent: boolean;
+	politicalX?: number; // -100 (left) to 100 (right)
+	politicalY?: number; // -100 (libertarian) to 100 (authoritarian)
+	perspective?: string;
+}
+
+async function analyzePoliticalContent(
+	apiKey: string,
+	settings: Settings,
+	content: string,
+): Promise<PoliticalAnalysisResult> {
+	const prompt = `Analyze if this video discusses political topics, policy, social issues, or ideological content.
+
+VIDEO CONTENT:
+${content.slice(0, 3000)}
+
+IMPORTANT: Most videos are NOT political. Tutorials, entertainment, cooking, gaming, music, lifestyle, tech reviews, etc. are NOT political unless they explicitly discuss policy, ideology, or social/political issues.
+
+Only mark as political if the video:
+- Discusses government policy, legislation, or political parties
+- Takes ideological positions on social issues
+- Covers political figures, elections, or political movements
+- Debates economic systems (capitalism vs socialism, etc.)
+- Addresses controversial social topics from a political angle
+
+If the video is NOT political (most videos), respond:
+{"hasPoliticalContent": false}
+
+If genuinely political, provide scores on these axes:
+- politicalX: Economic position from -100 (far left: collective ownership, heavy regulation, wealth redistribution) to 100 (far right: free markets, privatization, minimal regulation). 0 is centrist.
+- politicalY: Social position from -100 (libertarian: individual freedom, anti-authority, progressive social values) to 100 (authoritarian: order, tradition, hierarchy, conservative social values). 0 is moderate.
+- perspective: Brief label of the dominant perspective (e.g., "progressive activist", "libertarian", "conservative commentator", "centrist analyst")
+
+Respond with ONLY valid JSON:
+{"hasPoliticalContent": true, "politicalX": 0, "politicalY": 0, "perspective": "centrist"}`;
+
+	return generateJson<PoliticalAnalysisResult>(
+		apiKey,
+		settings.models.transcriptAnalysis,
+		prompt,
+		{ hasPoliticalContent: false },
 	);
 }
 
@@ -670,7 +717,11 @@ Respond with ONLY valid JSON:
 	return condensed;
 }
 
-async function analyzeVideo(videoUrl: string): Promise<VideoAnalysis> {
+async function analyzeVideo(
+	videoUrl: string,
+	videoId: string,
+	tabId?: number,
+): Promise<VideoAnalysis> {
 	const settings = await getSettings();
 
 	if (!settings.apiKey) {
@@ -683,15 +734,12 @@ async function analyzeVideo(videoUrl: string): Promise<VideoAnalysis> {
 	// Step 1: Read video content (multimodal)
 	const content = await readVideoContent(apiKey, settings, videoUrl);
 
-	// Step 2: Parallel text operations
-	const [summary, tags, analysisResult, keyPoints] = await Promise.all([
+	// Phase 1: Critical path - For You + Summary tabs
+	const [summary, analysisResult] = await Promise.all([
 		generateSummary(apiKey, settings, content),
-		generateTags(apiKey, settings, content),
 		analyzeContent(apiKey, settings, content, memories),
-		extractKeyPoints(apiKey, settings, content),
 	]);
 
-	// Step 3: Generate reason (needs scores/verdict)
 	const reason = await generateReason(
 		apiKey,
 		settings,
@@ -701,16 +749,69 @@ async function analyzeVideo(videoUrl: string): Promise<VideoAnalysis> {
 		memories,
 	);
 
-	return {
+	// Build partial analysis for immediate display
+	const partialAnalysis: VideoAnalysis = {
 		summary,
 		reason,
-		tags,
+		tags: [], // Phase 2
 		scores: analysisResult.scores,
 		verdict: analysisResult.verdict,
 		matchesInterests: analysisResult.matchesInterests,
 		enjoymentConfidence: analysisResult.enjoymentConfidence,
-		keyPoints: keyPoints.length > 0 ? keyPoints : undefined,
+		keyPoints: undefined, // Phase 2
+		perspective: undefined, // Phase 2
 	};
+
+	// Push partial result to content script immediately
+	if (tabId) {
+		chrome.tabs.sendMessage(tabId, {
+			type: MessageType.ANALYSIS_PARTIAL,
+			videoId,
+			analysis: partialAnalysis,
+		});
+	}
+
+	// Phase 2: Background - Chapters, Tags, Political analysis
+	const [tags, keyPoints, politicalResult] = await Promise.all([
+		generateTags(apiKey, settings, content),
+		extractKeyPoints(apiKey, settings, content),
+		analyzePoliticalContent(apiKey, settings, content),
+	]);
+
+	// Build final scores with optional political data
+	const finalScores = {
+		...analysisResult.scores,
+		hasPoliticalContent: politicalResult.hasPoliticalContent,
+		...(politicalResult.hasPoliticalContent && {
+			politicalX: politicalResult.politicalX,
+			politicalY: politicalResult.politicalY,
+		}),
+	};
+
+	const fullAnalysis: VideoAnalysis = {
+		summary,
+		reason,
+		tags,
+		scores: finalScores,
+		verdict: analysisResult.verdict,
+		matchesInterests: analysisResult.matchesInterests,
+		enjoymentConfidence: analysisResult.enjoymentConfidence,
+		keyPoints: keyPoints.length > 0 ? keyPoints : undefined,
+		perspective: politicalResult.hasPoliticalContent
+			? politicalResult.perspective
+			: undefined,
+	};
+
+	// Push complete result to content script
+	if (tabId) {
+		chrome.tabs.sendMessage(tabId, {
+			type: MessageType.ANALYSIS_COMPLETE,
+			videoId,
+			analysis: fullAnalysis,
+		});
+	}
+
+	return fullAnalysis;
 }
 
 // Brave Search - Related Web Content
@@ -827,12 +928,13 @@ async function setRelatedCache(
 }
 
 chrome.runtime.onMessage.addListener(
-	(message: Message, _sender, sendResponse) => {
+	(message: Message, sender, sendResponse) => {
 		(async () => {
 			try {
 				switch (message.type) {
 					case MessageType.ANALYZE_VIDEO: {
 						const { videoId, videoUrl } = message;
+						const tabId = sender.tab?.id;
 
 						// Check cache first
 						const cached = await getCached(videoId);
@@ -844,8 +946,8 @@ chrome.runtime.onMessage.addListener(
 							return;
 						}
 
-						// Analyze video
-						const analysis = await analyzeVideo(videoUrl);
+						// Analyze video with progressive updates
+						const analysis = await analyzeVideo(videoUrl, videoId, tabId);
 
 						// Cache result
 						await setCache(videoId, analysis);
@@ -955,99 +1057,122 @@ chrome.runtime.onMessage.addListener(
 					}
 
 					case MessageType.SUBMIT_FEEDBACK: {
-						const { videoId, videoTitle, feedback, analysis, channelInfo } =
-							message;
-						const settings = await getSettings();
+						try {
+							const { videoId, videoTitle, feedback, analysis, channelInfo } =
+								message;
+							const settings = await getSettings();
 
-						if (!settings.apiKey) {
-							sendResponse({
-								success: false,
-								error: "API key not configured",
-							} satisfies SubmitFeedbackResponse);
-							return;
-						}
+							if (!settings.apiKey) {
+								sendResponse({
+									success: false,
+									error: "API key not configured",
+								} satisfies SubmitFeedbackResponse);
+								return;
+							}
 
-						const apiKey = settings.apiKey;
+							const apiKey = settings.apiKey;
 
-						// Extract preferences from feedback
-						const extractedMemories = await extractPreferencesFromFeedback(
-							apiKey,
-							settings,
-							feedback,
-							videoTitle,
-							videoId,
-							analysis,
-						);
-
-						// Get existing memories to check for similarity
-						const existingMemories = await getMemories();
-						const resultMemories: MemoryEntry[] = [];
-
-						for (const newMem of extractedMemories) {
-							// Only check same type (likes vs dislikes)
-							const sameType = existingMemories.filter(
-								(m) => m.type === newMem.type,
-							);
-
-							// Check for similar existing preference
-							const similarity = await checkPreferenceSimilarity(
+							// Extract preferences from feedback
+							const extractedMemories = await extractPreferencesFromFeedback(
 								apiKey,
 								settings,
-								newMem.preference,
-								sameType.map((m) => ({ id: m.id, preference: m.preference })),
+								feedback,
+								videoTitle,
+								videoId,
+								analysis,
 							);
 
-							if (similarity.similarId && similarity.confidence >= 0.7) {
-								// Merge into existing memory
-								await mergeMemorySource(
-									similarity.similarId,
-									newMem.sources[0],
-									newMem.confidence,
-									similarity.mergedPreference,
+							// Get existing memories to check for similarity
+							const existingMemories = await getMemories();
+							const resultMemories: MemoryEntry[] = [];
+
+							for (const newMem of extractedMemories) {
+								// Only check same type (likes vs dislikes)
+								const sameType = existingMemories.filter(
+									(m) => m.type === newMem.type,
 								);
-								// Return the merged memory info
-								const mergedMem = existingMemories.find(
-									(m) => m.id === similarity.similarId,
+
+								// Check for similar existing preference
+								const similarity = await checkPreferenceSimilarity(
+									apiKey,
+									settings,
+									newMem.preference,
+									sameType.map((m) => ({ id: m.id, preference: m.preference })),
 								);
-								if (mergedMem) {
-									resultMemories.push({
-										...mergedMem,
-										preference:
-											similarity.mergedPreference || mergedMem.preference,
-									});
+
+								if (similarity.similarId && similarity.confidence >= 0.7) {
+									// Merge into existing memory
+									await mergeMemorySource(
+										similarity.similarId,
+										newMem.sources[0],
+										newMem.confidence,
+										similarity.mergedPreference,
+									);
+									// Return the merged memory info
+									const mergedMem = existingMemories.find(
+										(m) => m.id === similarity.similarId,
+									);
+									if (mergedMem) {
+										resultMemories.push({
+											...mergedMem,
+											preference:
+												similarity.mergedPreference || mergedMem.preference,
+										});
+									}
+								} else {
+									// Create new memory
+									await addMemory(newMem);
+									resultMemories.push(newMem);
 								}
-							} else {
-								// Create new memory
-								await addMemory(newMem);
-								resultMemories.push(newMem);
 							}
-						}
 
-						// Store feedback in history
-						await addFeedback({
-							videoId,
-							videoTitle,
-							feedback,
-							analysis,
-							timestamp: Date.now(),
-						});
-
-						// Track liked channel (only for likes)
-						if (feedback === "like" && channelInfo) {
-							await addLikedChannel(
-								channelInfo.channelId,
-								channelInfo.channelName,
-								channelInfo.channelUrl,
+							// Store feedback in history
+							await addFeedback({
 								videoId,
 								videoTitle,
-								analysis.scores,
-							);
-						}
+								feedback,
+								analysis,
+								timestamp: Date.now(),
+							});
 
-						sendResponse({
-							success: true,
-							memories: resultMemories,
-						} satisfies SubmitFeedbackResponse);
+							// Update political position if video has political content
+							if (
+								analysis?.scores?.hasPoliticalContent &&
+								typeof analysis.scores.politicalX === "number" &&
+								typeof analysis.scores.politicalY === "number"
+							) {
+								await updatePoliticalPosition(
+									analysis.scores.politicalX,
+									analysis.scores.politicalY,
+									feedback === "like",
+								);
+							}
+
+							// Track liked channel (only for likes)
+							if (feedback === "like" && channelInfo) {
+								await addLikedChannel(
+									channelInfo.channelId,
+									channelInfo.channelName,
+									channelInfo.channelUrl,
+									videoId,
+									videoTitle,
+									analysis.scores,
+								);
+							}
+
+							sendResponse({
+								success: true,
+								memories: resultMemories,
+							} satisfies SubmitFeedbackResponse);
+						} catch (feedbackError) {
+							sendResponse({
+								success: false,
+								error:
+									feedbackError instanceof Error
+										? feedbackError.message
+										: "Unknown feedback error",
+							} satisfies SubmitFeedbackResponse);
+						}
 						break;
 					}
 
@@ -1063,12 +1188,13 @@ chrome.runtime.onMessage.addListener(
 
 					case MessageType.REGENERATE_VIDEO: {
 						const { videoId, videoUrl } = message;
+						const regenTabId = sender.tab?.id;
 
 						// Clear existing cache
 						await clearVideoCache(videoId);
 
-						// Analyze fresh
-						const analysis = await analyzeVideo(videoUrl);
+						// Analyze fresh with progressive updates
+						const analysis = await analyzeVideo(videoUrl, videoId, regenTabId);
 
 						// Cache new result
 						await setCache(videoId, analysis);
