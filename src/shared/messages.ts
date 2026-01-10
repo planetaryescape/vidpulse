@@ -4,6 +4,7 @@ import type { VideoAnalysis, MemoryEntry, Settings, SessionData, SessionVideo, C
 export const MessageType = {
   ANALYZE_VIDEO: 'ANALYZE_VIDEO',
   CHECK_API_KEY: 'CHECK_API_KEY',
+  VALIDATE_API_KEY: 'VALIDATE_API_KEY',
   GET_CACHED: 'GET_CACHED',
   OPEN_OPTIONS: 'OPEN_OPTIONS',
   SUBMIT_FEEDBACK: 'SUBMIT_FEEDBACK',
@@ -43,6 +44,11 @@ export interface AnalyzeVideoRequest {
 
 export interface CheckApiKeyRequest {
   type: typeof MessageType.CHECK_API_KEY;
+}
+
+export interface ValidateApiKeyRequest {
+  type: typeof MessageType.VALIDATE_API_KEY;
+  apiKey: string;
 }
 
 export interface GetCachedRequest {
@@ -177,6 +183,7 @@ export interface CondenseMemoriesRequest {
 export type Message =
   | AnalyzeVideoRequest
   | CheckApiKeyRequest
+  | ValidateApiKeyRequest
   | GetCachedRequest
   | OpenOptionsRequest
   | SubmitFeedbackRequest
@@ -212,6 +219,11 @@ export interface AnalyzeVideoResponse {
 
 export interface CheckApiKeyResponse {
   hasKey: boolean;
+}
+
+export interface ValidateApiKeyResponse {
+  valid: boolean;
+  error?: string;
 }
 
 export interface GetCachedResponse {

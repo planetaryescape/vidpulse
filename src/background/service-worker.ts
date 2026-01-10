@@ -4,6 +4,7 @@ import type {
   Message,
   AnalyzeVideoResponse,
   CheckApiKeyResponse,
+  ValidateApiKeyResponse,
   GetCachedResponse,
   SubmitFeedbackResponse,
   GetVideoFeedbackResponse,
@@ -767,6 +768,30 @@ chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) =
         case MessageType.CHECK_API_KEY: {
           const settings = await getSettings();
           sendResponse({ hasKey: Boolean(settings.apiKey) } satisfies CheckApiKeyResponse);
+          break;
+        }
+
+        case MessageType.VALIDATE_API_KEY: {
+          const { apiKey } = message;
+          try {
+            const genAI = new GoogleGenAI({ apiKey });
+            await genAI.models.generateContent({
+              model: 'gemini-2.0-flash-lite',
+              contents: [{ role: 'user', parts: [{ text: 'Hi' }] }],
+            });
+            sendResponse({ valid: true } satisfies ValidateApiKeyResponse);
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            let userError = 'Invalid API key';
+            if (errorMessage.includes('API_KEY_INVALID') || errorMessage.includes('UNAUTHENTICATED')) {
+              userError = 'Invalid API key';
+            } else if (errorMessage.includes('429') || errorMessage.includes('rate')) {
+              userError = 'Too many requests - try again later';
+            } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+              userError = 'Network error - check connection';
+            }
+            sendResponse({ valid: false, error: userError } satisfies ValidateApiKeyResponse);
+          }
           break;
         }
 
