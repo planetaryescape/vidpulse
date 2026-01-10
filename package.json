@@ -9,7 +9,9 @@
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
     "lint": "biome check src",
-    "lint:fix": "biome check --write src"
+    "lint:fix": "biome check --write src",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.11",
@@ -19,7 +21,8 @@
     "lefthook": "^2.0.13",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
-    "vite-plugin-static-copy": "^3.1.4"
+    "vite-plugin-static-copy": "^3.1.4",
+    "vitest": "^4.0.16"
   },
   "dependencies": {
     "@google/genai": "^1.35.0"
