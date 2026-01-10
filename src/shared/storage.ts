@@ -11,19 +11,21 @@ import type {
 	SessionData,
 	SessionVideo,
 	Settings,
+	TextModel,
 	VideoAnalysis,
 	VideoFeedback,
+	VideoModel,
 	VideoNote,
 	VideoSource,
 } from "./types";
 
 const DEFAULT_MODELS: ModelConfig = {
-	videoReading: "gemini-3-flash-preview",
-	summarization: "gemini-2.0-flash",
-	recommendationReasoning: "gemini-2.0-flash",
-	tagGeneration: "gemini-2.0-flash",
-	transcriptAnalysis: "gemini-2.0-flash",
-	memoryExtraction: "gemini-2.0-flash",
+	videoReading: "google/gemini-3-flash-preview",
+	summarization: "google/gemini-3-flash-preview",
+	recommendationReasoning: "google/gemini-3-flash-preview",
+	tagGeneration: "google/gemini-3-flash-preview",
+	transcriptAnalysis: "google/gemini-3-flash-preview",
+	memoryExtraction: "google/gemini-3-flash-preview",
 };
 
 const DEFAULT_SETTINGS: Settings = {
@@ -45,7 +47,7 @@ const DEFAULT_SETTINGS: Settings = {
 const CACHE_PREFIX = "cache_";
 const MEMORIES_KEY = "vidpulse_memories";
 const FEEDBACK_KEY = "vidpulse_feedback";
-const API_KEYS_KEY = "vidpulse_api_keys";
+const API_KEYS_KEY = "vidpulse_openrouter_keys";
 
 // API keys stored in local storage only (not synced for security)
 async function getApiKeys(): Promise<ApiKeys> {
@@ -81,19 +83,104 @@ export async function migrateApiKeysToLocal(): Promise<void> {
 	}
 }
 
+// Model ID mappings for deprecated/incorrect OpenRouter model names
+const MODEL_ID_FIXES: Record<string, string> = {
+	// Missing prefix
+	"gemini-3-flash-preview": "google/gemini-3-flash-preview",
+	"gemini-2.5-flash": "google/gemini-2.5-flash",
+	"gemini-2.0-flash": "google/gemini-2.0-flash-001",
+	"gemini-1.5-pro": "google/gemini-2.5-pro",
+	// Wrong model IDs (OpenRouter uses different names)
+	"google/gemini-2.0-flash": "google/gemini-2.0-flash-001",
+	"google/gemini-1.5-pro": "google/gemini-2.5-pro",
+};
+
+// Fix model ID to correct OpenRouter format
+function fixModelId(modelId: string): string {
+	// Check for known fixes
+	if (MODEL_ID_FIXES[modelId]) {
+		return MODEL_ID_FIXES[modelId];
+	}
+	// If model doesn't have a provider prefix, add google/
+	if (!modelId.includes("/")) {
+		return `google/${modelId}`;
+	}
+	return modelId;
+}
+
+// Check if model ID needs migration
+function modelNeedsMigration(modelId: string): boolean {
+	return MODEL_ID_FIXES[modelId] !== undefined || !modelId.includes("/");
+}
+
+// Migrate stored model IDs to correct OpenRouter format
+export async function migrateModelIds(): Promise<void> {
+	const syncResult = await chrome.storage.sync.get("settings");
+	const syncSettings = (syncResult.settings || {}) as Partial<Settings>;
+
+	if (!syncSettings.models) return; // No custom models saved
+
+	const models = syncSettings.models;
+	let needsMigration = false;
+
+	// Check if any model needs migration
+	for (const key of Object.keys(models) as (keyof ModelConfig)[]) {
+		const modelId = models[key];
+		if (modelId && modelNeedsMigration(modelId)) {
+			needsMigration = true;
+			break;
+		}
+	}
+
+	if (needsMigration) {
+		const fixedModels: ModelConfig = {
+			videoReading: fixModelId(
+				models.videoReading || DEFAULT_MODELS.videoReading,
+			) as VideoModel,
+			summarization: fixModelId(
+				models.summarization || DEFAULT_MODELS.summarization,
+			) as TextModel,
+			recommendationReasoning: fixModelId(
+				models.recommendationReasoning ||
+					DEFAULT_MODELS.recommendationReasoning,
+			) as TextModel,
+			tagGeneration: fixModelId(
+				models.tagGeneration || DEFAULT_MODELS.tagGeneration,
+			) as TextModel,
+			transcriptAnalysis: fixModelId(
+				models.transcriptAnalysis || DEFAULT_MODELS.transcriptAnalysis,
+			) as TextModel,
+			memoryExtraction: fixModelId(
+				models.memoryExtraction || DEFAULT_MODELS.memoryExtraction,
+			) as TextModel,
+		};
+
+		await chrome.storage.sync.set({
+			settings: { ...syncSettings, models: fixedModels },
+		});
+		console.log("VidPulse: Migrated model IDs to correct OpenRouter format");
+	}
+}
+
+// In-memory settings cache to avoid repeated storage reads
+let settingsCache: Settings | null = null;
+
 // Settings (synced across devices, except API keys which are local-only)
 export async function getSettings(): Promise<Settings> {
+	if (settingsCache) return settingsCache;
+
 	const [syncResult, apiKeys] = await Promise.all([
 		chrome.storage.sync.get("settings"),
 		getApiKeys(),
 	]);
 	const syncSettings = (syncResult.settings || {}) as Partial<Settings>;
-	return {
+	settingsCache = {
 		...DEFAULT_SETTINGS,
 		...syncSettings,
 		apiKey: apiKeys.apiKey || "",
 		braveApiKey: apiKeys.braveApiKey,
 	};
+	return settingsCache;
 }
 
 // Check if preference-affecting settings changed
@@ -119,6 +206,9 @@ function preferencesChanged(
 }
 
 export async function saveSettings(settings: Partial<Settings>): Promise<void> {
+	// Invalidate cache before saving
+	settingsCache = null;
+
 	const current = await getSettings();
 
 	// Increment version if preferences changed (invalidates cache)
@@ -154,6 +244,9 @@ export async function saveSettings(settings: Partial<Settings>): Promise<void> {
 			? saveApiKeys(apiKeyUpdates)
 			: Promise.resolve(),
 	]);
+
+	// Invalidate cache after saving to ensure fresh data on next read
+	settingsCache = null;
 }
 
 // Cache (local only)

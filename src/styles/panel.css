@@ -4,16 +4,16 @@
 
 :root {
 	--vp-bg-dark: #0f0f0f;
-	--vp-bg-card: #1a1a1a;
-	--vp-bg-elevated: #262626;
-	--vp-text-primary: #f5f5f5;
-	--vp-text-secondary: #a3a3a3;
-	--vp-accent: #f59e0b;
-	--vp-accent-dim: #78350f;
+	--vp-bg-card: #272727;
+	--vp-bg-elevated: #272727;
+	--vp-text-primary: #f1f1f1;
+	--vp-text-secondary: #aaaaaa;
+	--vp-accent: #3ea6ff;
+	--vp-accent-dim: #1a3a5c;
 	--vp-score-high: #22c55e;
 	--vp-score-mid: #eab308;
 	--vp-score-low: #ef4444;
-	--vp-border: #333333;
+	--vp-border: #3f3f3f;
 }
 
 /* Main Panel Container */
@@ -66,7 +66,7 @@
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
 	padding: 3px 8px;
-	background: linear-gradient(135deg, #f59e0b, #d97706);
+	background: linear-gradient(135deg, #3ea6ff, #2d8cdb);
 	color: #fff;
 	border-radius: 4px;
 	cursor: pointer;
@@ -174,6 +174,10 @@
 
 /* No API Key State */
 .vp-no-key {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
 	text-align: center;
 	padding: 24px 16px;
 }
@@ -181,7 +185,7 @@
 .vp-no-key p {
 	font-size: calc(13px * var(--vp-font-scale));
 	color: var(--vp-text-secondary);
-	margin-bottom: 12px;
+	margin-bottom: 4px;
 }
 
 .vp-setup-btn {
@@ -198,11 +202,15 @@
 }
 
 .vp-setup-btn:hover {
-	background: #fbbf24;
+	background: #65b8ff;
 }
 
 /* Error State */
 .vp-error {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
 	text-align: center;
 	padding: 16px;
 	background: rgba(239, 68, 68, 0.1);
@@ -490,7 +498,7 @@
 }
 
 .vp-guardian-btn-watch:hover {
-	background: #fbbf24;
+	background: #65b8ff;
 }
 
 .vp-guardian-hint {
@@ -1209,7 +1217,7 @@
 }
 
 .vp-checkin-continue:hover {
-	background: #fbbf24;
+	background: #65b8ff;
 }
 
 .vp-checkin-hint {
@@ -1411,7 +1419,7 @@
 }
 
 .vp-analyze-playlist-btn:hover {
-	background: #fbbf24;
+	background: #65b8ff;
 }
 
 .vp-playlist-panel {
@@ -1622,7 +1630,7 @@
 }
 
 .vp-playlist-btn:hover {
-	background: #fbbf24;
+	background: #65b8ff;
 }
 
 /* ============================================

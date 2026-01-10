@@ -9,7 +9,7 @@ VidPulse is a Chrome extension that analyzes YouTube videos using AI. This polic
 ### What We Collect
 
 **User-Provided Data:**
-- Gemini API key (required) - stored locally on your device only
+- OpenRouter API key (required) - stored locally on your device only
 - Brave Search API key (optional) - stored locally on your device only
 - "About Me" profile text - synced across your Chrome devices
 - Manual preferences - synced across your Chrome devices
@@ -31,8 +31,8 @@ VidPulse is a Chrome extension that analyzes YouTube videos using AI. This polic
 ## How We Use Your Data
 
 **Video Analysis:**
-- Your Gemini API key authenticates requests to Google's Gemini AI
-- YouTube video URLs and content are sent to Gemini for analysis
+- Your OpenRouter API key authenticates requests to AI models (Gemini, Claude, GPT)
+- YouTube video URLs and content are sent to OpenRouter for analysis
 - Analysis results are cached locally to avoid repeated API calls
 
 **Personalization:**
@@ -46,10 +46,10 @@ VidPulse is a Chrome extension that analyzes YouTube videos using AI. This polic
 
 ## External Services
 
-### Google Gemini API
-- **What's sent:** YouTube video data (via Google's fileData API), analysis prompts
-- **Purpose:** AI-powered video analysis
-- **Google's privacy:** https://ai.google.dev/gemini-api/terms
+### OpenRouter API
+- **What's sent:** YouTube video data, analysis prompts
+- **Purpose:** AI-powered video analysis (routes to Gemini, Claude, GPT models)
+- **OpenRouter's privacy:** https://openrouter.ai/privacy
 
 ### Brave Search API (Optional)
 - **What's sent:** Search queries based on video topics

@@ -10,7 +10,7 @@ YouTube doesn't tell you if a video will actually be useful to *you*. Titles lie
 
 **VidPulse fixes this.**
 
-It uses Google's Gemini AI to actually watch videos for you (via multimodal analysis—not just reading titles or thumbnails) and tells you:
+It uses AI (via OpenRouter) to actually watch videos for you (via multimodal analysis—not just reading titles or thumbnails) and tells you:
 
 - Is this worth your time?
 - Does it match your interests?
@@ -22,7 +22,7 @@ Stop wasting time on videos that disappoint. Let AI be your filter.
 
 ## What It Does
 
-- **Watches videos for you** — Gemini AI analyzes actual video content, not just metadata
+- **Watches videos for you** — AI analyzes actual video content, not just metadata
 - **Scores on 5 dimensions** — Productivity, Educational, Entertainment, Inspiring, Creative (0-100)
 - **Gives a verdict** — Worth It / Maybe / Skip
 - **Learns your taste** — Like/dislike videos to teach it your preferences
@@ -34,9 +34,9 @@ Stop wasting time on videos that disappoint. Let AI be your filter.
 
 ### 1. Get API Keys
 
-**Gemini API Key** (required):
-1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. Create a free API key
+**OpenRouter API Key** (required):
+1. Go to [OpenRouter](https://openrouter.ai/keys)
+2. Create an API key
 3. Copy it
 
 **Brave Search API Key** (optional, for Related tab):
@@ -49,8 +49,8 @@ Stop wasting time on videos that disappoint. Let AI be your filter.
 ```bash
 git clone https://github.com/planetaryescape/vidpulse.git
 cd vidpulse
-npm install
-npm run build
+bun install
+bun run build
 ```
 
 Load in Chrome:
@@ -63,7 +63,7 @@ Load in Chrome:
 
 1. Click VidPulse icon in toolbar
 2. Go to Settings (gear icon)
-3. Paste your Gemini API key
+3. Paste your OpenRouter API key
 4. (Optional) Paste Brave Search API key for related content
 
 ## Features
@@ -181,16 +181,18 @@ Track your YouTube habits:
 
 ### Model Selection
 
-Configure different Gemini models per operation:
+Configure different models per operation via OpenRouter:
 
 | Operation | Default | Purpose |
 |-----------|---------|---------|
-| Video Reading | gemini-3-flash-preview | Multimodal video analysis |
-| Summarization | gemini-2.0-flash | Generate summary |
-| Reasoning | gemini-2.0-flash | Personalized recommendations |
-| Tag Generation | gemini-2.0-flash | Topic tags |
-| Content Analysis | gemini-2.0-flash | Scoring & verdict |
-| Memory Extraction | gemini-2.0-flash | Learn preferences from feedback |
+| Video Reading | google/gemini-2.5-flash-preview | Multimodal video analysis (Gemini only) |
+| Summarization | google/gemini-2.5-flash-preview | Generate summary |
+| Reasoning | google/gemini-2.5-flash-preview | Personalized recommendations |
+| Tag Generation | google/gemini-2.5-flash-preview | Topic tags |
+| Content Analysis | google/gemini-2.5-flash-preview | Scoring & verdict |
+| Memory Extraction | google/gemini-2.5-flash-preview | Learn preferences from feedback |
+
+Video Reading requires Gemini (video multimodal). Other operations support Claude Sonnet 4, GPT-4.5, and more.
 
 ### Caching
 
@@ -201,11 +203,11 @@ Configure different Gemini models per operation:
 ## Troubleshooting
 
 ### "API key not configured"
-Open Settings, paste a valid Gemini API key.
+Open Settings, paste a valid OpenRouter API key.
 
 ### "Analysis failed" / Rate limits
-- Check API key at [Google AI Studio](https://aistudio.google.com)
-- Free tier: 60 requests/minute
+- Check API key at [OpenRouter](https://openrouter.ai/keys)
+- Check your OpenRouter credit balance
 - Wait and retry
 
 ### Panel not showing
@@ -222,15 +224,15 @@ Lower threshold in Settings > Productivity Guardian.
 ## Build Commands
 
 ```bash
-npm run dev      # Build with watch mode
-npm run build    # Production build
-npm run clean    # Remove dist/
+bun run dev      # Build with watch mode
+bun run build    # Production build
+bun run clean    # Remove dist/
 ```
 
 ## Tech Stack
 
 - TypeScript, Vite, @crxjs/vite-plugin
-- @google/genai for Gemini API
+- @openrouter/sdk for AI models via OpenRouter
 - Brave Search API for related content
 - Chrome Extension Manifest V3
 

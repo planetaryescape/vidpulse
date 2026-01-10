@@ -1,4 +1,3 @@
-import { GoogleGenAI } from "@google/genai";
 import type {
 	AnalyzeVideoResponse,
 	CheckApiKeyResponse,
@@ -41,6 +40,7 @@ import {
 	getSettings,
 	mergeMemorySource,
 	migrateApiKeysToLocal,
+	migrateModelIds,
 	pauseFocusMode,
 	removeLikedChannel,
 	replaceMemories,
@@ -62,18 +62,19 @@ import type {
 	VideoAnalysis,
 } from "../shared/types";
 import { debugLog } from "../shared/utils";
+import {
+	generateFromVideo,
+	generateText as openrouterGenerateText,
+} from "./openrouter-api";
 
-// Migrate API keys from sync to local storage on startup
+// Run migrations on startup
 migrateApiKeysToLocal().catch(() => {});
+migrateModelIds().catch(() => {});
 
 // Helper to extract JSON from response (handles markdown code blocks)
 function extractJson(text: string): string {
 	const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
 	return jsonMatch ? jsonMatch[1].trim() : text.trim();
-}
-
-function createGenAI(apiKey: string): GoogleGenAI {
-	return new GoogleGenAI({ apiKey });
 }
 
 // Retry with exponential backoff for API failures
@@ -104,28 +105,24 @@ async function withRetry<T>(
 	throw new Error("Unreachable");
 }
 
-// Shared Gemini API helpers
+// Shared OpenRouter API helpers
 async function generateText(
-	genAI: GoogleGenAI,
+	apiKey: string,
 	model: string,
 	prompt: string,
 ): Promise<string> {
 	return withRetry(async () => {
-		const response = await genAI.models.generateContent({
-			model,
-			contents: [{ role: "user", parts: [{ text: prompt }] }],
-		});
-		return response.text || "";
+		return openrouterGenerateText(apiKey, model, prompt);
 	});
 }
 
 async function generateJson<T>(
-	genAI: GoogleGenAI,
+	apiKey: string,
 	model: string,
 	prompt: string,
 	fallback: T,
 ): Promise<T> {
-	const text = await generateText(genAI, model, prompt);
+	const text = await generateText(apiKey, model, prompt);
 	try {
 		return JSON.parse(extractJson(text)) as T;
 	} catch {
@@ -159,26 +156,11 @@ function buildMemoryContext(memories: MemoryEntry[]): string {
 }
 
 async function readVideoContent(
-	genAI: GoogleGenAI,
+	apiKey: string,
 	settings: Settings,
 	videoUrl: string,
 ): Promise<string> {
-	const text = await withRetry(
-		async () => {
-			const response = await genAI.models.generateContent({
-				model: settings.models.videoReading,
-				contents: [
-					{
-						role: "user",
-						parts: [
-							{
-								fileData: {
-									fileUri: videoUrl,
-									mimeType: "video/mp4",
-								},
-							},
-							{
-								text: `Watch this video and provide a detailed description of its content.
+	const prompt = `Watch this video and provide a detailed description of its content.
 Include:
 - Main topics and themes covered
 - Key points and arguments made
@@ -186,14 +168,11 @@ Include:
 - Target audience
 - Any notable quotes or moments
 
-Provide a thorough transcript-like description that captures the essence of the video.`,
-							},
-						],
-					},
-				],
-			});
-			return response.text;
-		},
+Provide a thorough transcript-like description that captures the essence of the video.`;
+
+	const text = await withRetry(
+		async () =>
+			generateFromVideo(apiKey, settings.models.videoReading, videoUrl, prompt),
 		{ retries: 3, delay: 2000 },
 	);
 
@@ -205,7 +184,7 @@ Provide a thorough transcript-like description that captures the essence of the 
 }
 
 async function generateSummary(
-	genAI: GoogleGenAI,
+	apiKey: string,
 	settings: Settings,
 	content: string,
 ): Promise<string> {
@@ -217,7 +196,7 @@ ${content}
 Respond with ONLY the summary text, no formatting or labels.`;
 
 	const result = await generateText(
-		genAI,
+		apiKey,
 		settings.models.summarization,
 		prompt,
 	);
@@ -225,7 +204,7 @@ Respond with ONLY the summary text, no formatting or labels.`;
 }
 
 async function extractKeyPoints(
-	genAI: GoogleGenAI,
+	apiKey: string,
 	settings: Settings,
 	content: string,
 ): Promise<KeyPoint[]> {
@@ -258,7 +237,7 @@ Respond with ONLY a valid JSON array:
 Extract 3-8 key points depending on video length and complexity.`;
 
 	return generateJson<KeyPoint[]>(
-		genAI,
+		apiKey,
 		settings.models.summarization,
 		prompt,
 		[],
@@ -266,7 +245,7 @@ Extract 3-8 key points depending on video length and complexity.`;
 }
 
 async function generateTags(
-	genAI: GoogleGenAI,
+	apiKey: string,
 	settings: Settings,
 	content: string,
 ): Promise<string[]> {
@@ -278,7 +257,7 @@ ${content}
 
 Respond with ONLY a JSON array of tags, e.g.: ["tech", "productivity", "tutorial"]`;
 
-	return generateJson<string[]>(genAI, settings.models.tagGeneration, prompt, [
+	return generateJson<string[]>(apiKey, settings.models.tagGeneration, prompt, [
 		"untagged",
 	]);
 }
@@ -298,7 +277,7 @@ interface AnalysisResult {
 }
 
 async function analyzeContent(
-	genAI: GoogleGenAI,
+	apiKey: string,
 	settings: Settings,
 	content: string,
 	memories: MemoryEntry[],
@@ -371,7 +350,7 @@ Respond with ONLY valid JSON:
 		verdict: "skip",
 	};
 	return generateJson<AnalysisResult>(
-		genAI,
+		apiKey,
 		settings.models.transcriptAnalysis,
 		prompt,
 		defaultResult,
@@ -379,7 +358,7 @@ Respond with ONLY valid JSON:
 }
 
 async function generateReason(
-	genAI: GoogleGenAI,
+	apiKey: string,
 	settings: Settings,
 	content: string,
 	scores: AnalysisResult["scores"],
@@ -430,7 +409,7 @@ ${!hasPreferences ? "Note: No preferences set yet, so explain based on general q
 Write 1-2 sentences. Be specific and personal. Respond with ONLY the explanation text.`;
 
 	const result = await generateText(
-		genAI,
+		apiKey,
 		settings.models.recommendationReasoning,
 		prompt,
 	);
@@ -445,7 +424,7 @@ interface ExtractedPreference {
 }
 
 async function extractPreferencesFromFeedback(
-	genAI: GoogleGenAI,
+	apiKey: string,
 	settings: Settings,
 	feedback: "like" | "dislike",
 	videoTitle: string,
@@ -482,7 +461,7 @@ extractedFrom can be: "summary", "content", or "tags"
 timestampSeconds is optional - include only if preference clearly relates to a specific section`;
 
 	const extracted = await generateJson<ExtractedPreference[]>(
-		genAI,
+		apiKey,
 		settings.models.memoryExtraction,
 		prompt,
 		[],
@@ -508,7 +487,7 @@ timestampSeconds is optional - include only if preference clearly relates to a s
 
 // Synthesize aboutMe from manual preferences and learned memories
 async function synthesizeAboutMe(
-	genAI: GoogleGenAI,
+	apiKey: string,
 	settings: Settings,
 	memories: MemoryEntry[],
 ): Promise<string> {
@@ -543,7 +522,7 @@ Write a cohesive 2-4 sentence profile that:
 
 Respond with ONLY the profile text.`;
 
-	return generateText(genAI, settings.models.memoryExtraction, prompt);
+	return generateText(apiKey, settings.models.memoryExtraction, prompt);
 }
 
 // Check if a new preference is similar to existing ones
@@ -554,7 +533,7 @@ interface SimilarityResult {
 }
 
 async function checkPreferenceSimilarity(
-	genAI: GoogleGenAI,
+	apiKey: string,
 	settings: Settings,
 	newPreference: string,
 	existingPreferences: { id: string; preference: string }[],
@@ -583,7 +562,7 @@ Respond with ONLY valid JSON:
 {"similarId": "the-id-or-null", "confidence": 0.8, "mergedPreference": "refined preference text"}`;
 
 	return generateJson<SimilarityResult>(
-		genAI,
+		apiKey,
 		settings.models.memoryExtraction,
 		prompt,
 		{ similarId: null, confidence: 0 },
@@ -592,7 +571,7 @@ Respond with ONLY valid JSON:
 
 // Condense memories by grouping similar ones
 async function condenseMemories(
-	genAI: GoogleGenAI,
+	apiKey: string,
 	settings: Settings,
 	memories: MemoryEntry[],
 ): Promise<MemoryEntry[]> {
@@ -602,9 +581,9 @@ async function condenseMemories(
 	const likes = memories.filter((m) => m.type === "like");
 	const dislikes = memories.filter((m) => m.type === "dislike");
 
-	const condensedLikes = await findAndMergeSimilar(genAI, settings, likes);
+	const condensedLikes = await findAndMergeSimilar(apiKey, settings, likes);
 	const condensedDislikes = await findAndMergeSimilar(
-		genAI,
+		apiKey,
 		settings,
 		dislikes,
 	);
@@ -613,7 +592,7 @@ async function condenseMemories(
 }
 
 async function findAndMergeSimilar(
-	genAI: GoogleGenAI,
+	apiKey: string,
 	settings: Settings,
 	memories: MemoryEntry[],
 ): Promise<MemoryEntry[]> {
@@ -644,7 +623,7 @@ Respond with ONLY valid JSON:
 	}
 
 	const result = await generateJson<GroupResult>(
-		genAI,
+		apiKey,
 		settings.models.memoryExtraction,
 		prompt,
 		{ groups: memories.map((_, i) => [i]), mergedTexts: {} },
@@ -698,23 +677,23 @@ async function analyzeVideo(videoUrl: string): Promise<VideoAnalysis> {
 		throw new Error("API key not configured");
 	}
 
-	const genAI = createGenAI(settings.apiKey);
+	const apiKey = settings.apiKey;
 	const memories = await getMemories();
 
 	// Step 1: Read video content (multimodal)
-	const content = await readVideoContent(genAI, settings, videoUrl);
+	const content = await readVideoContent(apiKey, settings, videoUrl);
 
 	// Step 2: Parallel text operations
 	const [summary, tags, analysisResult, keyPoints] = await Promise.all([
-		generateSummary(genAI, settings, content),
-		generateTags(genAI, settings, content),
-		analyzeContent(genAI, settings, content, memories),
-		extractKeyPoints(genAI, settings, content),
+		generateSummary(apiKey, settings, content),
+		generateTags(apiKey, settings, content),
+		analyzeContent(apiKey, settings, content, memories),
+		extractKeyPoints(apiKey, settings, content),
 	]);
 
 	// Step 3: Generate reason (needs scores/verdict)
 	const reason = await generateReason(
-		genAI,
+		apiKey,
 		settings,
 		content,
 		analysisResult.scores,
@@ -880,44 +859,80 @@ chrome.runtime.onMessage.addListener(
 
 					case MessageType.CHECK_API_KEY: {
 						const settings = await getSettings();
-						sendResponse({
-							hasKey: Boolean(settings.apiKey),
-						} satisfies CheckApiKeyResponse);
+						if (!settings.apiKey) {
+							sendResponse({ hasKey: false } satisfies CheckApiKeyResponse);
+							break;
+						}
+						// Validate key actually works with OpenRouter
+						try {
+							await openrouterGenerateText(
+								settings.apiKey,
+								"google/gemini-3-flash-preview",
+								"Say OK",
+							);
+							sendResponse({ hasKey: true } satisfies CheckApiKeyResponse);
+						} catch {
+							// Key exists but invalid - treat as no key
+							sendResponse({
+								hasKey: false,
+								invalid: true,
+							} satisfies CheckApiKeyResponse);
+						}
 						break;
 					}
 
 					case MessageType.VALIDATE_API_KEY: {
 						const { apiKey } = message;
 						try {
-							const genAI = new GoogleGenAI({ apiKey });
-							await genAI.models.generateContent({
-								model: "gemini-2.0-flash-lite",
-								contents: [{ role: "user", parts: [{ text: "Hi" }] }],
-							});
+							await openrouterGenerateText(
+								apiKey,
+								"google/gemini-3-flash-preview",
+								"Hi",
+							);
 							sendResponse({ valid: true } satisfies ValidateApiKeyResponse);
 						} catch (error) {
 							const errorMessage =
 								error instanceof Error ? error.message : "Unknown error";
-							let userError = "Invalid API key";
-							if (
-								errorMessage.includes("API_KEY_INVALID") ||
-								errorMessage.includes("UNAUTHENTICATED")
-							) {
-								userError = "Invalid API key";
-							} else if (
-								errorMessage.includes("429") ||
-								errorMessage.includes("rate")
-							) {
-								userError = "Too many requests - try again later";
-							} else if (
-								errorMessage.includes("network") ||
-								errorMessage.includes("fetch")
-							) {
-								userError = "Network error - check connection";
-							}
+							// Show actual error to help user diagnose
 							sendResponse({
 								valid: false,
-								error: userError,
+								error: errorMessage,
+							} satisfies ValidateApiKeyResponse);
+						}
+						break;
+					}
+
+					case MessageType.VALIDATE_BRAVE_API_KEY: {
+						const { apiKey } = message;
+						try {
+							const response = await fetch(
+								"https://api.search.brave.com/res/v1/web/search?q=test&count=1",
+								{
+									headers: {
+										Accept: "application/json",
+										"X-Subscription-Token": apiKey,
+									},
+								},
+							);
+							if (response.ok) {
+								sendResponse({
+									valid: true,
+								} satisfies ValidateApiKeyResponse);
+							} else if (response.status === 401 || response.status === 403) {
+								sendResponse({
+									valid: false,
+									error: "Invalid Brave API key",
+								} satisfies ValidateApiKeyResponse);
+							} else {
+								sendResponse({
+									valid: false,
+									error: `Brave API error: ${response.status}`,
+								} satisfies ValidateApiKeyResponse);
+							}
+						} catch {
+							sendResponse({
+								valid: false,
+								error: "Network error - check connection",
 							} satisfies ValidateApiKeyResponse);
 						}
 						break;
@@ -952,11 +967,11 @@ chrome.runtime.onMessage.addListener(
 							return;
 						}
 
-						const genAI = createGenAI(settings.apiKey);
+						const apiKey = settings.apiKey;
 
 						// Extract preferences from feedback
 						const extractedMemories = await extractPreferencesFromFeedback(
-							genAI,
+							apiKey,
 							settings,
 							feedback,
 							videoTitle,
@@ -976,7 +991,7 @@ chrome.runtime.onMessage.addListener(
 
 							// Check for similar existing preference
 							const similarity = await checkPreferenceSimilarity(
-								genAI,
+								apiKey,
 								settings,
 								newMem.preference,
 								sameType.map((m) => ({ id: m.id, preference: m.preference })),
@@ -1236,12 +1251,12 @@ chrome.runtime.onMessage.addListener(
 							return;
 						}
 
-						const genAI = createGenAI(settings.apiKey);
+						const apiKey = settings.apiKey;
 						const memories = await getMemories();
 
 						try {
 							const aboutMe = await synthesizeAboutMe(
-								genAI,
+								apiKey,
 								settings,
 								memories,
 							);
@@ -1307,13 +1322,13 @@ chrome.runtime.onMessage.addListener(
 							return;
 						}
 
-						const genAI = createGenAI(settings.apiKey);
+						const apiKey = settings.apiKey;
 						const memories = await getMemories();
 						const beforeCount = memories.length;
 
 						try {
 							const condensed = await condenseMemories(
-								genAI,
+								apiKey,
 								settings,
 								memories,
 							);

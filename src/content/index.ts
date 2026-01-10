@@ -145,14 +145,6 @@ async function handleVideoPage(videoId: string): Promise<void> {
 		}
 	}
 
-	// Add video to session
-	const sessionVideo: SessionVideo = {
-		videoId,
-		title: getVideoTitle(),
-		startTime: Date.now(),
-	};
-	await addVideoToSession(sessionVideo);
-
 	const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
 	// Check if API key is configured
@@ -161,7 +153,15 @@ async function handleVideoPage(videoId: string): Promise<void> {
 	});
 
 	if (!keyCheck.hasKey) {
-		await injectPanel({ status: "no_key", videoId });
+		if (keyCheck.invalid) {
+			await injectPanel({
+				status: "error",
+				videoId,
+				error: "API key invalid - please update in settings",
+			});
+		} else {
+			await injectPanel({ status: "no_key", videoId });
+		}
 		return;
 	}
 
