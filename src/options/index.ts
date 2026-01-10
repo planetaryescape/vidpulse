@@ -1,12 +1,16 @@
+import Chart from "chart.js/auto";
 import { exportAllNotes, exportNotesForVideo } from "../shared/export";
 import {
 	clearMemories,
 	deleteAllNotesForVideo,
 	getAllDailyStats,
 	getAllNotesIndex,
+	getAllPoliticalSnapshots,
+	getBlindSpotAnalysis,
 	getFocusSchedule,
 	getMemories,
 	getNotesForVideo,
+	getPoliticalPosition,
 	getSettings,
 	removeMemory,
 	saveFocusSchedule,
@@ -15,6 +19,8 @@ import {
 import type {
 	LikedChannel,
 	NotesIndex,
+	PoliticalPosition,
+	PoliticalSnapshot,
 	Settings,
 	TextModel,
 	VideoModel,
@@ -169,6 +175,34 @@ const checkInStatusEl = document.getElementById(
 const digestContentEl = document.getElementById(
 	"digestContent",
 ) as HTMLDivElement;
+
+// DOM elements - Analytics
+const analyticsSummaryEl = document.getElementById(
+	"analyticsSummary",
+) as HTMLDivElement;
+const pieChartCanvas = document.getElementById("pieChart") as HTMLCanvasElement;
+const barChartCanvas = document.getElementById("barChart") as HTMLCanvasElement;
+const politicalCompassEl = document.getElementById(
+	"politicalCompass",
+) as HTMLDivElement;
+const compassDescriptionEl = document.getElementById(
+	"compassDescription",
+) as HTMLParagraphElement;
+const compassTrendCanvas = document.getElementById(
+	"compassTrendChart",
+) as HTMLCanvasElement;
+const blindSpotAlertsEl = document.getElementById(
+	"blindSpotAlerts",
+) as HTMLDivElement;
+const customDateRangeEl = document.getElementById(
+	"customDateRange",
+) as HTMLDivElement;
+const compassStartDateInput = document.getElementById(
+	"compassStartDate",
+) as HTMLInputElement;
+const compassEndDateInput = document.getElementById(
+	"compassEndDate",
+) as HTMLInputElement;
 
 // DOM elements - Notes
 const notesSearchInput = document.getElementById(
@@ -1122,6 +1156,541 @@ async function renderDigest(): Promise<void> {
 	digestContentEl.appendChild(dailySection);
 }
 
+// Chart instances (global for cleanup)
+let pieChartInstance: Chart | null = null;
+let barChartInstance: Chart | null = null;
+let trendChartInstance: Chart | null = null;
+
+// Analytics state
+type AnalyticsFilter = "today" | "week" | "month" | "year";
+let currentAnalyticsFilter: AnalyticsFilter = "week";
+let currentCompassFilter: AnalyticsFilter | "custom" = "week";
+
+function getDateRange(filter: AnalyticsFilter): { start: Date; end: Date } {
+	const end = new Date();
+	end.setHours(23, 59, 59, 999);
+	const start = new Date();
+	start.setHours(0, 0, 0, 0);
+
+	switch (filter) {
+		case "today":
+			break;
+		case "week":
+			start.setDate(start.getDate() - 6);
+			break;
+		case "month":
+			start.setDate(start.getDate() - 29);
+			break;
+		case "year":
+			start.setFullYear(start.getFullYear() - 1);
+			break;
+	}
+	return { start, end };
+}
+
+function createStatBox(value: string, label: string): HTMLElement {
+	const box = document.createElement("div");
+	box.className = "stat-box";
+	const valueEl = document.createElement("span");
+	valueEl.className = "stat-value";
+	valueEl.textContent = value;
+	const labelEl = document.createElement("span");
+	labelEl.className = "stat-label";
+	labelEl.textContent = label;
+	box.appendChild(valueEl);
+	box.appendChild(labelEl);
+	return box;
+}
+
+async function renderAnalytics(): Promise<void> {
+	const allStatsRecord = await getAllDailyStats();
+	const { start, end } = getDateRange(currentAnalyticsFilter);
+	const startStr = start.toISOString().split("T")[0];
+	const endStr = end.toISOString().split("T")[0];
+
+	// Filter stats by date range
+	const filteredStats = Object.values(allStatsRecord).filter(
+		(s) => s.date >= startStr && s.date <= endStr,
+	);
+
+	// Aggregate totals
+	let totalTime = 0;
+	let totalVideos = 0;
+	const categoryTotals = {
+		educational: { count: 0, time: 0 },
+		entertainment: { count: 0, time: 0 },
+		productive: { count: 0, time: 0 },
+		inspiring: { count: 0, time: 0 },
+		creative: { count: 0, time: 0 },
+	};
+
+	for (const day of filteredStats) {
+		totalTime += day.totalTime;
+		totalVideos += day.videoCount;
+		for (const cat of Object.keys(categoryTotals) as Array<
+			keyof typeof categoryTotals
+		>) {
+			categoryTotals[cat].count += day.byCategory[cat]?.count || 0;
+			categoryTotals[cat].time += day.byCategory[cat]?.time || 0;
+		}
+	}
+
+	// Render summary stats
+	if (analyticsSummaryEl) {
+		clearElement(analyticsSummaryEl);
+		const summary = document.createElement("div");
+		summary.className = "analytics-summary-grid";
+		summary.appendChild(createStatBox(formatTime(totalTime), "Total Time"));
+		summary.appendChild(createStatBox(String(totalVideos), "Videos"));
+		analyticsSummaryEl.appendChild(summary);
+	}
+
+	// Render pie chart (video type distribution)
+	if (pieChartCanvas) {
+		if (pieChartInstance) pieChartInstance.destroy();
+
+		const labels = [
+			"Educational",
+			"Entertainment",
+			"Productive",
+			"Inspiring",
+			"Creative",
+		];
+		const data = [
+			categoryTotals.educational.count,
+			categoryTotals.entertainment.count,
+			categoryTotals.productive.count,
+			categoryTotals.inspiring.count,
+			categoryTotals.creative.count,
+		];
+
+		pieChartInstance = new Chart(pieChartCanvas, {
+			type: "doughnut",
+			data: {
+				labels,
+				datasets: [
+					{
+						data,
+						backgroundColor: [
+							"#3b82f6", // blue - educational
+							"#f59e0b", // amber - entertainment
+							"#22c55e", // green - productive
+							"#a855f7", // purple - inspiring
+							"#ec4899", // pink - creative
+						],
+						borderWidth: 0,
+					},
+				],
+			},
+			options: {
+				responsive: true,
+				maintainAspectRatio: true,
+				plugins: {
+					legend: {
+						position: "bottom",
+						labels: { color: "#aaa", font: { size: 11 } },
+					},
+				},
+			},
+		});
+	}
+
+	// Render bar chart (watch time by category)
+	if (barChartCanvas) {
+		if (barChartInstance) barChartInstance.destroy();
+
+		const labels = [
+			"Educational",
+			"Entertainment",
+			"Productive",
+			"Inspiring",
+			"Creative",
+		];
+		const data = [
+			Math.round(categoryTotals.educational.time / 60),
+			Math.round(categoryTotals.entertainment.time / 60),
+			Math.round(categoryTotals.productive.time / 60),
+			Math.round(categoryTotals.inspiring.time / 60),
+			Math.round(categoryTotals.creative.time / 60),
+		];
+
+		barChartInstance = new Chart(barChartCanvas, {
+			type: "bar",
+			data: {
+				labels,
+				datasets: [
+					{
+						label: "Minutes",
+						data,
+						backgroundColor: [
+							"#3b82f6",
+							"#f59e0b",
+							"#22c55e",
+							"#a855f7",
+							"#ec4899",
+						],
+						borderWidth: 0,
+					},
+				],
+			},
+			options: {
+				indexAxis: "y",
+				responsive: true,
+				maintainAspectRatio: true,
+				plugins: {
+					legend: { display: false },
+				},
+				scales: {
+					x: {
+						ticks: { color: "#aaa" },
+						grid: { color: "#333" },
+					},
+					y: {
+						ticks: { color: "#aaa" },
+						grid: { display: false },
+					},
+				},
+			},
+		});
+	}
+
+	// Render political compass and blind spots
+	await renderPoliticalCompass();
+	await renderBlindSpots();
+}
+
+async function renderPoliticalCompass(): Promise<void> {
+	if (!politicalCompassEl) return;
+
+	clearElement(politicalCompassEl);
+
+	let position: PoliticalPosition | null = null;
+	let snapshots: PoliticalSnapshot[] = [];
+
+	if (currentCompassFilter === "custom") {
+		const startDate = compassStartDateInput?.value;
+		const endDate = compassEndDateInput?.value;
+		if (startDate && endDate) {
+			const allSnapshots = await getAllPoliticalSnapshots();
+			snapshots = Object.values(allSnapshots).filter(
+				(s) => s.date >= startDate && s.date <= endDate,
+			);
+			// Calculate average position from snapshots
+			if (snapshots.length > 0) {
+				const totalX = snapshots.reduce(
+					(sum, s) => sum + s.x * s.videosContributed,
+					0,
+				);
+				const totalY = snapshots.reduce(
+					(sum, s) => sum + s.y * s.videosContributed,
+					0,
+				);
+				const totalVideos = snapshots.reduce(
+					(sum, s) => sum + s.videosContributed,
+					0,
+				);
+				if (totalVideos > 0) {
+					position = {
+						x: totalX / totalVideos,
+						y: totalY / totalVideos,
+						sampleCount: totalVideos,
+						lastUpdated: Date.now(),
+					};
+				}
+			}
+		}
+	} else {
+		position = await getPoliticalPosition();
+		const { start, end } = getDateRange(
+			currentCompassFilter as AnalyticsFilter,
+		);
+		const startStr = start.toISOString().split("T")[0];
+		const endStr = end.toISOString().split("T")[0];
+		const allSnapshots = await getAllPoliticalSnapshots();
+		snapshots = Object.values(allSnapshots).filter(
+			(s) => s.date >= startStr && s.date <= endStr,
+		);
+	}
+
+	if (!position || position.sampleCount === 0) {
+		const empty = document.createElement("div");
+		empty.className = "compass-empty";
+		empty.textContent =
+			"No political content tracked yet. Like or dislike videos with political content to see your position.";
+		politicalCompassEl.appendChild(empty);
+		if (compassDescriptionEl) compassDescriptionEl.textContent = "";
+		return;
+	}
+
+	// Create SVG compass
+	const size = 200;
+	const svgNS = "http://www.w3.org/2000/svg";
+	const svg = document.createElementNS(svgNS, "svg");
+	svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
+	svg.setAttribute("width", String(size));
+	svg.setAttribute("height", String(size));
+	svg.style.display = "block";
+	svg.style.margin = "0 auto";
+
+	const padding = 10;
+	const range = size - 2 * padding;
+	const center = size / 2;
+
+	// Quadrant backgrounds
+	const quadrants = [
+		{ x: padding, y: padding, color: "rgba(168, 85, 247, 0.15)" }, // Auth-Left
+		{ x: center, y: padding, color: "rgba(59, 130, 246, 0.15)" }, // Auth-Right
+		{ x: padding, y: center, color: "rgba(34, 197, 94, 0.15)" }, // Lib-Left
+		{ x: center, y: center, color: "rgba(245, 158, 11, 0.15)" }, // Lib-Right
+	];
+
+	for (const q of quadrants) {
+		const rect = document.createElementNS(svgNS, "rect");
+		rect.setAttribute("x", String(q.x));
+		rect.setAttribute("y", String(q.y));
+		rect.setAttribute("width", String(range / 2));
+		rect.setAttribute("height", String(range / 2));
+		rect.setAttribute("fill", q.color);
+		svg.appendChild(rect);
+	}
+
+	// Axes
+	const vLine = document.createElementNS(svgNS, "line");
+	vLine.setAttribute("x1", String(center));
+	vLine.setAttribute("y1", String(padding));
+	vLine.setAttribute("x2", String(center));
+	vLine.setAttribute("y2", String(size - padding));
+	vLine.setAttribute("stroke", "#555");
+	vLine.setAttribute("stroke-width", "1");
+	svg.appendChild(vLine);
+
+	const hLine = document.createElementNS(svgNS, "line");
+	hLine.setAttribute("x1", String(padding));
+	hLine.setAttribute("y1", String(center));
+	hLine.setAttribute("x2", String(size - padding));
+	hLine.setAttribute("y2", String(center));
+	hLine.setAttribute("stroke", "#555");
+	hLine.setAttribute("stroke-width", "1");
+	svg.appendChild(hLine);
+
+	// Axis labels
+	const labels = [
+		{ x: padding + 2, y: center - 4, text: "Left" },
+		{ x: size - padding - 24, y: center - 4, text: "Right" },
+		{ x: center + 4, y: padding + 10, text: "Auth" },
+		{ x: center + 4, y: size - padding - 4, text: "Lib" },
+	];
+
+	for (const lbl of labels) {
+		const text = document.createElementNS(svgNS, "text");
+		text.setAttribute("x", String(lbl.x));
+		text.setAttribute("y", String(lbl.y));
+		text.setAttribute("fill", "#888");
+		text.setAttribute("font-size", "9");
+		text.textContent = lbl.text;
+		svg.appendChild(text);
+	}
+
+	// User position dot
+	const dotX = padding + ((position.x + 100) / 200) * range;
+	const dotY = padding + ((100 - position.y) / 200) * range;
+
+	const dot = document.createElementNS(svgNS, "circle");
+	dot.setAttribute("cx", String(dotX));
+	dot.setAttribute("cy", String(dotY));
+	dot.setAttribute("r", "8");
+	dot.setAttribute("fill", "#3ea6ff");
+	dot.setAttribute("stroke", "#fff");
+	dot.setAttribute("stroke-width", "2");
+	svg.appendChild(dot);
+
+	politicalCompassEl.appendChild(svg);
+
+	// Description
+	if (compassDescriptionEl) {
+		const quadrantName = getQuadrantName(position.x, position.y);
+		compassDescriptionEl.textContent = `${quadrantName} (${Math.round(position.x)}, ${Math.round(position.y)}) based on ${position.sampleCount} videos`;
+	}
+
+	// Render trend chart
+	await renderCompassTrendChart(snapshots);
+}
+
+function getQuadrantName(x: number, y: number): string {
+	if (Math.abs(x) <= 15 && Math.abs(y) <= 15) return "Centrist";
+	if (x < 0 && y > 0) return "Auth-Left";
+	if (x >= 0 && y > 0) return "Auth-Right";
+	if (x < 0 && y <= 0) return "Lib-Left";
+	return "Lib-Right";
+}
+
+async function renderCompassTrendChart(
+	snapshots: PoliticalSnapshot[],
+): Promise<void> {
+	if (!compassTrendCanvas) return;
+
+	if (trendChartInstance) trendChartInstance.destroy();
+
+	if (snapshots.length < 2) {
+		// Not enough data for a trend
+		const ctx = compassTrendCanvas.getContext("2d");
+		if (ctx) {
+			ctx.clearRect(0, 0, compassTrendCanvas.width, compassTrendCanvas.height);
+			ctx.fillStyle = "#666";
+			ctx.font = "12px sans-serif";
+			ctx.textAlign = "center";
+			ctx.fillText(
+				"Not enough data for trend",
+				compassTrendCanvas.width / 2,
+				compassTrendCanvas.height / 2,
+			);
+		}
+		return;
+	}
+
+	const sortedSnapshots = [...snapshots].sort((a, b) =>
+		a.date.localeCompare(b.date),
+	);
+
+	trendChartInstance = new Chart(compassTrendCanvas, {
+		type: "line",
+		data: {
+			labels: sortedSnapshots.map((s) => s.date),
+			datasets: [
+				{
+					label: "Left-Right (X)",
+					data: sortedSnapshots.map((s) => s.x),
+					borderColor: "#3b82f6",
+					backgroundColor: "rgba(59, 130, 246, 0.1)",
+					tension: 0.3,
+					fill: false,
+				},
+				{
+					label: "Auth-Lib (Y)",
+					data: sortedSnapshots.map((s) => s.y),
+					borderColor: "#22c55e",
+					backgroundColor: "rgba(34, 197, 94, 0.1)",
+					tension: 0.3,
+					fill: false,
+				},
+			],
+		},
+		options: {
+			responsive: true,
+			maintainAspectRatio: true,
+			plugins: {
+				legend: {
+					position: "bottom",
+					labels: { color: "#aaa", font: { size: 11 } },
+				},
+			},
+			scales: {
+				x: {
+					ticks: { color: "#aaa", maxTicksLimit: 6 },
+					grid: { color: "#333" },
+				},
+				y: {
+					min: -100,
+					max: 100,
+					ticks: { color: "#aaa" },
+					grid: { color: "#333" },
+				},
+			},
+		},
+	});
+}
+
+async function renderBlindSpots(): Promise<void> {
+	if (!blindSpotAlertsEl) return;
+
+	clearElement(blindSpotAlertsEl);
+
+	const analysis = await getBlindSpotAnalysis();
+
+	if (!analysis || analysis.narrowPerspectives.length === 0) {
+		const empty = document.createElement("div");
+		empty.className = "blindspot-empty";
+		empty.textContent =
+			"No blind spots detected yet. Watch more videos to get insights.";
+		blindSpotAlertsEl.appendChild(empty);
+		return;
+	}
+
+	for (const spot of analysis.narrowPerspectives) {
+		const alert = document.createElement("div");
+		alert.className = "blindspot-alert";
+
+		const title = document.createElement("div");
+		title.className = "blindspot-title";
+		title.textContent = `${spot.topic} (${spot.videoCount} videos)`;
+
+		const current = document.createElement("div");
+		current.className = "blindspot-current";
+		current.textContent = `Current perspectives: ${spot.perspectives.join(", ")}`;
+
+		const missing = document.createElement("div");
+		missing.className = "blindspot-missing";
+		missing.textContent = `Consider exploring: ${spot.missing.join(", ")}`;
+
+		alert.appendChild(title);
+		alert.appendChild(current);
+		alert.appendChild(missing);
+		blindSpotAlertsEl.appendChild(alert);
+	}
+
+	// Coverage indicator
+	const coverage = document.createElement("div");
+	coverage.className = "blindspot-coverage";
+	coverage.textContent = `Topic coverage: ${analysis.topicCoverage}%`;
+	blindSpotAlertsEl.appendChild(coverage);
+}
+
+function setupAnalyticsFilters(): void {
+	// Analytics time filters
+	const filterBtns = document.querySelectorAll(".analytics-filter button");
+	filterBtns.forEach((btn) => {
+		btn.addEventListener("click", () => {
+			for (const b of filterBtns) b.classList.remove("active");
+			btn.classList.add("active");
+			const id = btn.id;
+			if (id === "filterToday") currentAnalyticsFilter = "today";
+			else if (id === "filterWeek") currentAnalyticsFilter = "week";
+			else if (id === "filterMonth") currentAnalyticsFilter = "month";
+			else if (id === "filterYear") currentAnalyticsFilter = "year";
+			renderAnalytics();
+		});
+	});
+
+	// Compass time filters
+	const compassBtns = document.querySelectorAll(".compass-filter button");
+	compassBtns.forEach((btn) => {
+		btn.addEventListener("click", () => {
+			for (const b of compassBtns) b.classList.remove("active");
+			btn.classList.add("active");
+			const id = btn.id;
+			if (id === "compassCustom") {
+				currentCompassFilter = "custom";
+				if (customDateRangeEl) customDateRangeEl.style.display = "flex";
+			} else {
+				if (customDateRangeEl) customDateRangeEl.style.display = "none";
+				if (id === "compassToday") currentCompassFilter = "today";
+				else if (id === "compassWeek") currentCompassFilter = "week";
+				else if (id === "compassMonth") currentCompassFilter = "month";
+				else if (id === "compassYear") currentCompassFilter = "year";
+				renderPoliticalCompass();
+			}
+		});
+	});
+
+	// Custom date range apply button
+	const applyBtn = document.getElementById("applyDateRange");
+	if (applyBtn) {
+		applyBtn.addEventListener("click", () => {
+			renderPoliticalCompass();
+		});
+	}
+}
+
 // Notes state
 let allNotesIndex: NotesIndex[] = [];
 let selectedVideoId: string | null = null;
@@ -1313,6 +1882,8 @@ notesSearchInput.addEventListener("input", () => {
 initTabs();
 loadSettings();
 renderNotes();
+setupAnalyticsFilters();
+renderAnalytics();
 
 // Listen for settings changes (e.g., when aboutMe is regenerated in background)
 chrome.storage.onChanged.addListener((changes, areaName) => {
