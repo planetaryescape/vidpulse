@@ -1,6 +1,8 @@
 // Navigation detection for YouTube SPA
 // YouTube fires custom events when navigation completes
 
+import { debugLog } from "../shared/utils";
+
 type NavigationCallback = (url: string, videoId: string | null) => void;
 
 export function extractVideoId(url: string): string | null {
@@ -55,7 +57,7 @@ export function setupNavigationListener(callback: NavigationCallback): void {
 	const tryInitial = () => {
 		const videoId = extractVideoId(window.location.href);
 		if (videoId) {
-			console.log("VidPulse: Initial detection - video ID:", videoId);
+			debugLog("Initial detection - video ID:", videoId);
 			lastVideoId = videoId;
 			lastUrl = window.location.href;
 			callback(window.location.href, videoId);

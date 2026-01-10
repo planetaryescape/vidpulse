@@ -61,6 +61,7 @@ import type {
 	Settings,
 	VideoAnalysis,
 } from "../shared/types";
+import { debugLog } from "../shared/utils";
 
 // Migrate API keys from sync to local storage on startup
 migrateApiKeysToLocal().catch(() => {});
@@ -1382,16 +1383,13 @@ chrome.runtime.onInstalled.addListener(async () => {
 // When user clicks extension icon, trigger re-detection on current tab
 chrome.action.onClicked.addListener(async (tab) => {
 	if (tab.id && tab.url?.includes("youtube.com")) {
-		console.log(
-			"VidPulse: Extension icon clicked, sending RE_DETECT to tab",
-			tab.id,
-		);
+		debugLog("Extension icon clicked, sending RE_DETECT to tab", tab.id);
 		try {
 			await chrome.tabs.sendMessage(tab.id, { type: "RE_DETECT" });
 		} catch {
 			// Content script not ready - likely tab opened before extension install/update
 			// Reload the tab to trigger manifest-based injection
-			console.log("VidPulse: Content script not ready, reloading tab");
+			debugLog("Content script not ready, reloading tab");
 			chrome.tabs.reload(tab.id);
 		}
 	} else {
@@ -1400,4 +1398,4 @@ chrome.action.onClicked.addListener(async (tab) => {
 	}
 });
 
-console.log("VidPulse: Background service worker loaded");
+debugLog("Background service worker loaded");
