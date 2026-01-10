@@ -3,6 +3,7 @@ import { getScoreLevel } from '../shared/utils';
 import { getFocusSchedule, isInFocusPeriod, trackOverride } from './storage-proxy';
 
 const GUARDIAN_ID = 'vidpulse-guardian';
+let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
 
 export interface BlockResult {
   block: boolean;
@@ -72,6 +73,10 @@ export async function isFocusModeActive(): Promise<boolean> {
 }
 
 export function removeGuardian(): void {
+  if (keydownHandler) {
+    document.removeEventListener('keydown', keydownHandler);
+    keydownHandler = null;
+  }
   document.getElementById(GUARDIAN_ID)?.remove();
 }
 
@@ -207,12 +212,11 @@ export function showGuardian(
   document.body.appendChild(overlay);
 
   // Keyboard handler
-  const handleKeydown = (e: KeyboardEvent) => {
+  keydownHandler = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       removeGuardian();
       onWatchAnyway();
-      document.removeEventListener('keydown', handleKeydown);
     }
   };
-  document.addEventListener('keydown', handleKeydown);
+  document.addEventListener('keydown', keydownHandler);
 }

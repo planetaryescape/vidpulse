@@ -2,6 +2,7 @@ import type { WatchIntent } from '../shared/types';
 import { setSessionIntent, getSession } from './storage-proxy';
 
 const INTENT_OVERLAY_ID = 'vidpulse-intent-overlay';
+let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
 
 export function showIntentPrompt(onComplete: (intent: WatchIntent | null) => void): void {
   // Remove existing overlay if present
@@ -72,14 +73,13 @@ export function showIntentPrompt(onComplete: (intent: WatchIntent | null) => voi
   });
 
   // Handle escape key
-  const handleKeydown = (e: KeyboardEvent) => {
+  keydownHandler = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       dismissIntentPrompt();
       onComplete(null);
-      document.removeEventListener('keydown', handleKeydown);
     }
   };
-  document.addEventListener('keydown', handleKeydown);
+  document.addEventListener('keydown', keydownHandler);
 
   content.appendChild(icon);
   content.appendChild(title);
@@ -92,6 +92,10 @@ export function showIntentPrompt(onComplete: (intent: WatchIntent | null) => voi
 }
 
 export function dismissIntentPrompt(): void {
+  if (keydownHandler) {
+    document.removeEventListener('keydown', keydownHandler);
+    keydownHandler = null;
+  }
   const overlay = document.getElementById(INTENT_OVERLAY_ID);
   if (overlay) {
     overlay.remove();
