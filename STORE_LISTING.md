@@ -5,7 +5,7 @@ AI-powered YouTube video analysis - get summaries, quality scores, and personali
 
 ## Detailed Description
 
-Stop wasting time on clickbait. VidPulse analyzes YouTube videos before you watch, giving you AI-generated summaries, quality scores, and honest recommendations.
+Stop wasting time on clickbait. VidPulse is a mindful video consumption tool that analyzes YouTube videos before you watch, helping you make informed decisions about what deserves your attention.
 
 ### How It Works
 1. Navigate to any YouTube video
@@ -13,7 +13,7 @@ Stop wasting time on clickbait. VidPulse analyzes YouTube videos before you watc
 3. View the analysis panel showing summary, scores, and verdict
 4. Make informed decisions about what to watch
 
-### Features
+### Video Analysis Features
 
 **Smart Analysis**
 - AI-generated video summaries
@@ -32,20 +32,20 @@ Rate videos across 5 dimensions:
 **Worth It Verdict**
 Get a clear recommendation: Worth It, Maybe, or Skip - personalized to your preferences.
 
-**Learns Your Taste**
+**Personalized Analysis**
 - Like or dislike analyzed videos
 - VidPulse learns what content you value
-- Future recommendations become more personalized
+- Future analysis becomes more relevant to your interests
 
-**Productivity Guardian**
-- Set minimum quality thresholds
-- Block distracting content during focus hours
-- Stay productive on YouTube
+**Quality Threshold Guardian**
+- Set minimum quality thresholds for videos
+- Get warnings before watching low-quality content
+- Optional focus mode for work hours
 
-**Session Tracking**
-- See what you've watched this session
-- Track time by content category
-- Build better watching habits
+**Watch Quality Awareness**
+- See analysis history for your current session
+- Understand your viewing patterns by content quality
+- Make more intentional watching decisions
 
 ### Privacy First
 - Your API keys stay on your device (never synced)
@@ -105,6 +105,55 @@ Generated in `store-assets/`:
 
 ---
 
+## Permission Justifications
+
+For Chrome Web Store privacy practices form:
+
+| Permission | Justification |
+|------------|---------------|
+| `storage` | Save user settings, cache video analysis results locally, store learned preferences |
+| `activeTab` | Detect current YouTube video URL to trigger analysis |
+| `tabs` | Send re-analyze command when user clicks extension icon |
+| `scripting` | Inject analysis panel UI into YouTube video pages |
+
+**Host Permissions:**
+
+| Host | Justification |
+|------|---------------|
+| `youtube.com` | Primary site - inject analysis panel, read video information |
+| `generativelanguage.googleapis.com` | Google Gemini API for AI video analysis (user's own API key) |
+| `api.search.brave.com` | Optional Brave Search API for related content (user's own API key) |
+
+---
+
+## Privacy Practices Questionnaire
+
+Answers for Chrome Web Store submission form:
+
+**"Does your extension collect user data?"**
+Yes - user preferences, video analysis cache, feedback on videos. All stored locally on device.
+
+**"Is data sent to external servers?"**
+Yes - video content is sent to Google's Gemini API for AI analysis. User provides their own API key. Optionally, search queries sent to Brave Search API for related content.
+
+**"Do you share or sell user data?"**
+No - data is only sent to APIs the user explicitly configures with their own keys. No data is shared with the extension developer or any third parties.
+
+**"What data is collected?"**
+- User preferences and settings (local + Chrome sync)
+- Video analysis results (cached locally)
+- Like/dislike feedback (local only)
+- Learned content preferences (Chrome sync)
+- Session viewing history (cleared on browser close)
+
+**"How long is data retained?"**
+- Analysis cache: Configurable, default 365 days
+- Feedback history: Last 100 entries
+- Session data: Cleared when browser closes
+- Preferences: Until user deletes
+
+---
+
 ## Submission Checklist
 
 - [ ] Developer account created ($5 one-time)
@@ -112,7 +161,8 @@ Generated in `store-assets/`:
 - [ ] Screenshots captured and uploaded
 - [ ] Promotional images uploaded
 - [ ] Description reviewed for typos
-- [ ] Permissions justified in privacy practices form
+- [ ] Permissions justified in privacy practices form (see above)
+- [ ] Privacy questionnaire completed (see above)
 - [ ] API key disclosure noted (Gemini, Brave)
 - [ ] Test extension on Chrome latest version
 - [ ] Build passes: `npm run build`
