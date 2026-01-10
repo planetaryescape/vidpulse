@@ -1,8 +1,10 @@
 import "../styles/panel.css";
+import "../styles/overlay.css";
 import type {
 	AnalyzeVideoResponse,
 	CheckApiKeyResponse,
 	GetCachedResponse,
+	PushedMessage,
 } from "../shared/messages";
 import { MessageType, sendMessage } from "../shared/messages";
 import type { SessionVideo, VideoAnalysis } from "../shared/types";
@@ -10,6 +12,12 @@ import { initCheckIn } from "./checkin";
 import { removeGuardian, shouldBlock, showGuardian } from "./guardian";
 import { hasIntentSet, showIntentPrompt } from "./intent";
 import { extractVideoId, setupNavigationListener } from "./navigation";
+import {
+	injectOverlay,
+	removeOverlay,
+	toggleOverlayExpanded,
+	updateOverlay,
+} from "./overlay";
 import {
 	injectPanel,
 	removePanel,
@@ -175,6 +183,11 @@ async function handleVideoPage(videoId: string): Promise<void> {
 		currentAnalysis = cached.analysis;
 		await updateSessionVideoWithAnalysis(videoId, cached.analysis);
 		await injectPanel({ status: "ready", videoId, analysis: cached.analysis });
+		await injectOverlay({
+			status: "ready",
+			videoId,
+			analysis: cached.analysis,
+		});
 		await checkGuardian(cached.analysis);
 		return;
 	}
@@ -197,6 +210,11 @@ async function handleVideoPage(videoId: string): Promise<void> {
 			currentAnalysis = response.analysis;
 			await updateSessionVideoWithAnalysis(videoId, response.analysis);
 			await injectPanel({
+				status: "ready",
+				videoId,
+				analysis: response.analysis,
+			});
+			await injectOverlay({
 				status: "ready",
 				videoId,
 				analysis: response.analysis,
@@ -232,6 +250,7 @@ async function handleNavigation(
 
 	// Always clean up on navigation to prevent stale UI
 	removePanel();
+	removeOverlay();
 	removeGuardian();
 
 	// Handle playlist pages
@@ -302,9 +321,55 @@ function setupKeyboardShortcuts(): void {
 					triggerRegenerate();
 				}
 				break;
+			case "O":
+				// Toggle overlay expanded/collapsed
+				if (currentVideoId && currentAnalysis) {
+					e.preventDefault();
+					toggleOverlayExpanded();
+				}
+				break;
 		}
 	});
 }
+
+// Listen for pushed analysis updates from background
+chrome.runtime.onMessage.addListener((message: PushedMessage) => {
+	if (
+		message.type === MessageType.ANALYSIS_PARTIAL &&
+		message.videoId === currentVideoId
+	) {
+		currentAnalysis = message.analysis;
+		injectPanel({
+			status: "partial",
+			videoId: currentVideoId,
+			analysis: message.analysis,
+		});
+		updateOverlay({
+			status: "partial",
+			videoId: currentVideoId,
+			analysis: message.analysis,
+		});
+	}
+
+	if (
+		message.type === MessageType.ANALYSIS_COMPLETE &&
+		message.videoId === currentVideoId
+	) {
+		currentAnalysis = message.analysis;
+		updateSessionVideoWithAnalysis(currentVideoId, message.analysis);
+		injectPanel({
+			status: "ready",
+			videoId: currentVideoId,
+			analysis: message.analysis,
+		});
+		injectOverlay({
+			status: "ready",
+			videoId: currentVideoId,
+			analysis: message.analysis,
+		});
+		checkGuardian(message.analysis);
+	}
+});
 
 // Initialize
 setupNavigationListener(handleNavigation);
