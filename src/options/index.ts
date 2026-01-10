@@ -426,12 +426,26 @@ async function handleSaveApiConfig(): Promise<void> {
     return;
   }
 
+  // Validate API key before saving
+  saveApiBtn.disabled = true;
+  apiStatusEl.textContent = 'Validating API key...';
+  apiStatusEl.className = 'status';
+
   try {
+    const response = await chrome.runtime.sendMessage({ type: 'VALIDATE_API_KEY', apiKey });
+    if (!response.valid) {
+      showStatus(apiStatusEl, response.error || 'Invalid API key', 'error');
+      saveApiBtn.disabled = false;
+      return;
+    }
+
     await saveSettings({ apiKey, braveApiKey, cacheExpiry });
     showStatus(apiStatusEl, 'API settings saved!', 'success');
   } catch (error) {
-    showStatus(apiStatusEl, 'Failed to save settings', 'error');
+    showStatus(apiStatusEl, 'Failed to validate API key', 'error');
     console.error('Save error:', error);
+  } finally {
+    saveApiBtn.disabled = false;
   }
 }
 
