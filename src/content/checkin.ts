@@ -4,6 +4,7 @@ import type { SessionData } from '../shared/types';
 const CHECKIN_OVERLAY_ID = 'vidpulse-checkin-overlay';
 let checkInTimer: ReturnType<typeof setTimeout> | null = null;
 let lastCheckIn: number = 0;
+let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
 
 function formatDuration(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000);
@@ -106,14 +107,13 @@ function createCheckInOverlay(session: SessionData): HTMLElement {
   });
 
   // Handle escape key
-  const handleKeydown = (e: KeyboardEvent) => {
+  keydownHandler = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       dismissCheckIn();
       scheduleNextCheckIn();
-      document.removeEventListener('keydown', handleKeydown);
     }
   };
-  document.addEventListener('keydown', handleKeydown);
+  document.addEventListener('keydown', keydownHandler);
 
   buttons.appendChild(breakBtn);
   buttons.appendChild(continueBtn);
@@ -145,6 +145,10 @@ export function showCheckIn(): void {
 }
 
 export function dismissCheckIn(): void {
+  if (keydownHandler) {
+    document.removeEventListener('keydown', keydownHandler);
+    keydownHandler = null;
+  }
   const overlay = document.getElementById(CHECKIN_OVERLAY_ID);
   if (overlay) {
     overlay.remove();
