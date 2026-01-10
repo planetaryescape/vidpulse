@@ -161,9 +161,9 @@ async function buildPanelContent(
 	if (state.status === "loading") {
 		content.appendChild(buildLoadingContent());
 	} else if (state.status === "no_key") {
-		content.appendChild(buildNoKeyContent());
+		content.appendChild(buildNoKeyContent(state.videoId));
 	} else if (state.status === "error") {
-		content.appendChild(buildErrorContent(state.error));
+		content.appendChild(buildErrorContent(state.error, state.videoId));
 	} else if (state.status === "ready" && state.analysis) {
 		const analysisContent = await buildAnalysisContent(state.analysis, state);
 		while (analysisContent.firstChild) {
@@ -181,7 +181,17 @@ export function removePanel(): void {
 	document.getElementById(FLOATING_CONTAINER_ID)?.remove();
 }
 
+// Guard to prevent concurrent panel injections
+let injectionInProgress = false;
+
 export async function injectPanel(state: PanelState): Promise<void> {
+	// Prevent concurrent injections that cause duplicates
+	if (injectionInProgress) return;
+	injectionInProgress = true;
+
+	// Remove existing panel FIRST, before any async work
+	removePanel();
+
 	try {
 		const [{ container, isFloating }, fontSize, feedbackResponse] =
 			await Promise.all([
@@ -194,8 +204,6 @@ export async function injectPanel(state: PanelState): Promise<void> {
 						}).catch(() => undefined)
 					: Promise.resolve(undefined),
 			]);
-
-		removePanel();
 
 		const userFeedback = feedbackResponse?.hasFeedback
 			? feedbackResponse.feedback
@@ -224,7 +232,7 @@ export async function injectPanel(state: PanelState): Promise<void> {
         border: none;
         font-size: 16px;
         cursor: pointer;
-        color: var(--vp-text-muted, #666);
+        color: var(--vp-text-muted, #aaa);
         z-index: 1;
       `;
 			closeBtn.addEventListener("click", (e) => {
@@ -241,6 +249,8 @@ export async function injectPanel(state: PanelState): Promise<void> {
 		updateLikedChannelSubscriptionStatus();
 	} catch (error) {
 		console.error("VidPulse: Failed to inject panel", error);
+	} finally {
+		injectionInProgress = false;
 	}
 }
 
