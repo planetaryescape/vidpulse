@@ -2,7 +2,10 @@ import Chart from "chart.js/auto";
 import { exportAllNotes, exportNotesForVideo } from "../shared/export";
 import {
 	clearMemories,
+	deleteAccount,
 	deleteAllNotesForVideo,
+	deleteAllUserData,
+	exportAllUserData,
 	getAllDailyStats,
 	getAllNotesIndex,
 	getAllPoliticalSnapshots,
@@ -138,6 +141,20 @@ const refreshLikedChannelsBtn = document.getElementById(
 ) as HTMLButtonElement;
 const likedChannelsStatusEl = document.getElementById(
 	"likedChannelsStatus",
+) as HTMLDivElement;
+
+// DOM elements - Privacy & Data
+const exportDataBtn = document.getElementById(
+	"exportDataBtn",
+) as HTMLButtonElement;
+const deleteDataBtn = document.getElementById(
+	"deleteDataBtn",
+) as HTMLButtonElement;
+const deleteAccountBtn = document.getElementById(
+	"deleteAccountBtn",
+) as HTMLButtonElement;
+const privacyStatusEl = document.getElementById(
+	"privacyStatus",
 ) as HTMLDivElement;
 
 // DOM elements - Guardian
@@ -892,6 +909,98 @@ async function handleClearMemories(): Promise<void> {
 	} catch (error) {
 		showStatus(memoryStatusEl, "Failed to clear", "error");
 		console.error("Clear error:", error);
+	}
+}
+
+// Privacy & Data handlers
+async function handleExportData(): Promise<void> {
+	try {
+		exportDataBtn.disabled = true;
+		exportDataBtn.textContent = "Exporting...";
+
+		const data = await exportAllUserData();
+		const blob = new Blob([JSON.stringify(data, null, 2)], {
+			type: "application/json",
+		});
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = `vidpulse-data-${new Date().toISOString().split("T")[0]}.json`;
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
+
+		showStatus(privacyStatusEl, "Data exported", "success");
+	} catch (error) {
+		showStatus(privacyStatusEl, "Export failed", "error");
+		console.error("Export error:", error);
+	} finally {
+		exportDataBtn.disabled = false;
+		exportDataBtn.textContent = "Export My Data";
+	}
+}
+
+async function handleDeleteData(): Promise<void> {
+	if (
+		!confirm(
+			"This will permanently delete all your notes, learned preferences, viewing history, and analytics. Your settings and API keys will be kept. Continue?",
+		)
+	) {
+		return;
+	}
+
+	try {
+		deleteDataBtn.disabled = true;
+		deleteDataBtn.textContent = "Deleting...";
+
+		await deleteAllUserData();
+
+		// Refresh UI
+		renderMemories();
+		renderLikedChannels();
+		renderNotes();
+		renderAnalytics();
+
+		showStatus(privacyStatusEl, "All data deleted", "success");
+	} catch (error) {
+		showStatus(privacyStatusEl, "Delete failed", "error");
+		console.error("Delete error:", error);
+	} finally {
+		deleteDataBtn.disabled = false;
+		deleteDataBtn.textContent = "Delete My Data";
+	}
+}
+
+async function handleDeleteAccount(): Promise<void> {
+	if (
+		!confirm(
+			"This will reset VidPulse completely. All data will be deleted and you'll need to re-enter your API keys. Continue?",
+		)
+	) {
+		return;
+	}
+
+	// Double confirm for destructive action
+	if (!confirm("Are you absolutely sure? This cannot be undone.")) {
+		return;
+	}
+
+	try {
+		deleteAccountBtn.disabled = true;
+		deleteAccountBtn.textContent = "Resetting...";
+
+		await deleteAccount();
+
+		showStatus(privacyStatusEl, "Account reset complete", "success");
+
+		// Reload page to show fresh state
+		setTimeout(() => window.location.reload(), 1000);
+	} catch (error) {
+		showStatus(privacyStatusEl, "Reset failed", "error");
+		console.error("Reset error:", error);
+		deleteAccountBtn.disabled = false;
+		deleteAccountBtn.textContent = "Delete My Account";
 	}
 }
 
@@ -1945,6 +2054,9 @@ refreshMemoriesBtn.addEventListener("click", renderMemories);
 condenseMemoriesBtn.addEventListener("click", handleCondenseMemories);
 clearMemoriesBtn.addEventListener("click", handleClearMemories);
 refreshLikedChannelsBtn.addEventListener("click", renderLikedChannels);
+exportDataBtn.addEventListener("click", handleExportData);
+deleteDataBtn.addEventListener("click", handleDeleteData);
+deleteAccountBtn.addEventListener("click", handleDeleteAccount);
 saveGuardianBtn.addEventListener("click", handleSaveGuardian);
 saveCheckInBtn.addEventListener("click", handleSaveCheckIn);
 saveTimelineMarkersBtn.addEventListener("click", handleSaveTimelineMarkers);
