@@ -45,6 +45,7 @@ const DEFAULT_SETTINGS: Settings = {
 	preferencesVersion: 1,
 	checkInEnabled: true,
 	checkInInterval: 30, // 30 minutes default
+	showTimelineMarkers: true, // show chapter/note markers on progress bar
 };
 
 const CACHE_PREFIX = "cache_";
@@ -545,15 +546,33 @@ export async function addVideoToSession(video: SessionVideo): Promise<void> {
 	await chrome.storage.session.set({ [SESSION_KEY]: session });
 }
 
-export async function endVideoInSession(videoId: string): Promise<void> {
+export async function endVideoInSession(
+	videoId: string,
+	watchDuration?: number,
+): Promise<void> {
 	const session = await getSession();
 	if (!session) return;
 
 	const video = session.videos.find((v) => v.videoId === videoId);
 	if (video && !video.endTime) {
 		video.endTime = Date.now();
+		if (watchDuration !== undefined) {
+			video.watchDuration = watchDuration;
+			// Add to session total watch time
+			session.totalWatchTime = (session.totalWatchTime || 0) + watchDuration;
+		}
 		await chrome.storage.session.set({ [SESSION_KEY]: session });
 	}
+}
+
+export async function updateSessionWatchTime(
+	additionalSeconds: number,
+): Promise<void> {
+	const session = await getSession();
+	if (!session) return;
+
+	session.totalWatchTime = (session.totalWatchTime || 0) + additionalSeconds;
+	await chrome.storage.session.set({ [SESSION_KEY]: session });
 }
 
 export async function setSessionIntent(
