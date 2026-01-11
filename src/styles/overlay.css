@@ -9,14 +9,15 @@
 	z-index: 60;
 	font-family: "JetBrains Mono", monospace;
 	pointer-events: auto;
-	transition: opacity 0.2s ease;
+	transition: opacity 0.25s ease;
 	display: flex;
 	flex-direction: column-reverse;
 	align-items: center;
 	gap: 8px;
+	opacity: 0; /* Hidden when mouse idle (ytp-autohide active) */
 }
 
-/* Fade when YT controls visible */
+/* Show when YouTube controls visible (mouse active) */
 .html5-video-player:not(.ytp-autohide) .vp-overlay {
 	opacity: 0.4;
 }
