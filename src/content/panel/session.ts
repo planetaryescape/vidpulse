@@ -7,7 +7,11 @@ export function getSessionStats(session: SessionData): {
 	videoCount: number;
 	byCategory: Record<string, number>;
 } {
-	const duration = formatDuration(Date.now() - session.startTime);
+	// Use accumulated watch time if available, otherwise fall back to wall clock
+	const watchTimeMs = (session.totalWatchTime || 0) * 1000;
+	const duration = formatDuration(
+		watchTimeMs > 0 ? watchTimeMs : Date.now() - session.startTime,
+	);
 	const videoCount = session.videos.length;
 
 	const byCategory: Record<string, number> = {

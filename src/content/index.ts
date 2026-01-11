@@ -11,6 +11,7 @@ import type { SessionVideo, VideoAnalysis } from "../shared/types";
 import { initCheckIn } from "./checkin";
 import { removeGuardian, shouldBlock, showGuardian } from "./guardian";
 import { hasIntentSet, showIntentPrompt } from "./intent";
+import { injectMarkers, removeMarkers } from "./markers";
 import { extractVideoId, setupNavigationListener } from "./navigation";
 import {
 	injectOverlay,
@@ -31,6 +32,7 @@ import { cleanupPlaylist, handlePlaylistPage } from "./playlist";
 import {
 	addVideoToSession,
 	endVideoInSession,
+	getNotesForVideo,
 	getSession,
 	getSettings,
 	startSession,
@@ -38,11 +40,28 @@ import {
 	updateDailyStats,
 	updateSessionActivity,
 } from "./storage-proxy";
+import {
+	cleanupVideoWatcher,
+	getAccumulatedWatchTime,
+	initVideoWatcher,
+} from "./video-watcher";
 
 let currentVideoId: string | null = null;
 let analysisAbortController: AbortController | null = null;
 let guardianDismissed = false; // Track if user dismissed guardian for current video
 let currentAnalysis: VideoAnalysis | null = null; // Track current analysis for keyboard shortcuts
+
+// Inject timeline markers if enabled
+async function maybeInjectMarkers(
+	videoId: string,
+	analysis: VideoAnalysis,
+): Promise<void> {
+	const settings = await getSettings();
+	if (!settings.showTimelineMarkers) return;
+
+	const notes = await getNotesForVideo(videoId);
+	injectMarkers(videoId, analysis.keyPoints || [], notes);
+}
 
 async function checkGuardian(analysis: VideoAnalysis): Promise<void> {
 	if (guardianDismissed) return;
@@ -97,19 +116,31 @@ async function updateSessionVideoWithAnalysis(
 			creative: analysis.scores.creative,
 		});
 	}
+	// Daily stats are updated when video ends with actual watch duration
+}
 
-	// Update daily stats (estimate 5 min watch time for now, will be updated on navigation)
-	await updateDailyStats({
-		duration: 300, // 5 minutes default, updated when navigating away
-		scores: {
-			productivity: analysis.scores.productivity,
-			educational: analysis.scores.educational,
-			entertainment: analysis.scores.entertainment,
-			inspiring: analysis.scores.inspiring,
-			creative: analysis.scores.creative,
-		},
-		channelId: channelInfo?.channelId || "",
-	});
+async function endCurrentVideo(videoId: string): Promise<void> {
+	// Get actual watch duration from video watcher
+	const watchDuration = Math.round(getAccumulatedWatchTime());
+
+	// Get session to find video scores for daily stats
+	const session = await getSession();
+	const video = session?.videos.find((v) => v.videoId === videoId);
+
+	// Update daily stats with actual duration
+	if (watchDuration > 0 && video?.scores) {
+		await updateDailyStats({
+			duration: watchDuration,
+			scores: video.scores,
+			channelId: "", // Channel ID not stored in session video
+		});
+	}
+
+	// End video in session with watch duration
+	await endVideoInSession(videoId, watchDuration);
+
+	// Clean up video watcher
+	cleanupVideoWatcher();
 }
 
 async function handleVideoPage(videoId: string): Promise<void> {
@@ -118,7 +149,7 @@ async function handleVideoPage(videoId: string): Promise<void> {
 
 	// End previous video in session
 	if (currentVideoId) {
-		await endVideoInSession(currentVideoId);
+		await endCurrentVideo(currentVideoId);
 	}
 
 	// Cancel any pending analysis
@@ -131,6 +162,9 @@ async function handleVideoPage(videoId: string): Promise<void> {
 	currentAnalysis = null;
 	guardianDismissed = false; // Reset for new video
 	removeGuardian(); // Remove any existing guardian overlay
+
+	// Start tracking watch time for this video
+	initVideoWatcher(videoId);
 
 	// Initialize session if needed
 	let session = await getSession();
@@ -188,6 +222,7 @@ async function handleVideoPage(videoId: string): Promise<void> {
 			videoId,
 			analysis: cached.analysis,
 		});
+		await maybeInjectMarkers(videoId, cached.analysis);
 		await checkGuardian(cached.analysis);
 		return;
 	}
@@ -219,6 +254,7 @@ async function handleVideoPage(videoId: string): Promise<void> {
 				videoId,
 				analysis: response.analysis,
 			});
+			await maybeInjectMarkers(videoId, response.analysis);
 			await checkGuardian(response.analysis);
 		} else {
 			await injectPanel({
@@ -245,13 +281,14 @@ async function handleNavigation(
 ): Promise<void> {
 	// End previous video in session
 	if (currentVideoId && currentVideoId !== videoId) {
-		await endVideoInSession(currentVideoId);
+		await endCurrentVideo(currentVideoId);
 	}
 
 	// Always clean up on navigation to prevent stale UI
 	removePanel();
 	removeOverlay();
 	removeGuardian();
+	removeMarkers();
 
 	// Handle playlist pages
 	handlePlaylistPage();
@@ -367,6 +404,7 @@ chrome.runtime.onMessage.addListener((message: PushedMessage) => {
 			videoId: currentVideoId,
 			analysis: message.analysis,
 		});
+		maybeInjectMarkers(currentVideoId, message.analysis);
 		checkGuardian(message.analysis);
 	}
 });

@@ -83,6 +83,8 @@ export interface Settings {
 	// Check-in prompts
 	checkInEnabled: boolean; // enable/disable check-in prompts
 	checkInInterval: number; // minutes between check-ins (0 = disabled)
+	// Timeline markers
+	showTimelineMarkers: boolean; // show chapter/note markers on progress bar
 }
 
 // Video source for memory entries (supports multiple sources after merging)
@@ -133,6 +135,7 @@ export interface SessionVideo {
 	title: string;
 	startTime: number; // when user started watching
 	endTime?: number; // when user navigated away
+	watchDuration?: number; // actual seconds watched (accumulated from play/pause)
 	scores?: {
 		productivity: number;
 		educational: number;
@@ -148,6 +151,7 @@ export interface SessionData {
 	lastActivity: number; // last activity timestamp (for inactivity reset)
 	videos: SessionVideo[]; // videos watched this session
 	intent?: WatchIntent; // user's declared intent
+	totalWatchTime?: number; // accumulated watch time in seconds
 }
 
 export type WatchIntent = "learning" | "research" | "relaxing" | "browsing";

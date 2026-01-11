@@ -17,3 +17,8 @@ export function getCurrentVideoTime(): number {
 	const video = document.querySelector("video") as HTMLVideoElement | null;
 	return video ? video.currentTime : 0;
 }
+
+export function getVideoDuration(): number {
+	const video = document.querySelector("video") as HTMLVideoElement | null;
+	return video?.duration || 0;
+}

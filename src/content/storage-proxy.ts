@@ -51,10 +51,23 @@ export async function addVideoToSession(video: SessionVideo): Promise<void> {
 	});
 }
 
-export async function endVideoInSession(videoId: string): Promise<void> {
+export async function endVideoInSession(
+	videoId: string,
+	watchDuration?: number,
+): Promise<void> {
 	await sendMessage<{ success: boolean }>({
 		type: MessageType.STORAGE_END_VIDEO_IN_SESSION,
 		videoId,
+		watchDuration,
+	});
+}
+
+export async function updateSessionWatchTime(
+	additionalSeconds: number,
+): Promise<void> {
+	await sendMessage<{ success: boolean }>({
+		type: MessageType.STORAGE_UPDATE_SESSION_WATCH_TIME,
+		additionalSeconds,
 	});
 }
 

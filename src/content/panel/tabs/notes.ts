@@ -1,5 +1,6 @@
 import { exportNotesForVideo } from "../../../shared/export";
 import type { PanelState, VideoNote } from "../../../shared/types";
+import { updateMarkersForNotes } from "../../markers";
 import {
 	addNote,
 	deleteNote,
@@ -44,12 +45,26 @@ function createNoteItem(
 	};
 
 	let saveTimeout: ReturnType<typeof setTimeout>;
+	let lastSavedContent = note.content;
+
+	const saveNote = async () => {
+		const currentContent = textarea.value;
+		if (currentContent !== lastSavedContent) {
+			await updateNote(videoId, note.id, currentContent);
+			lastSavedContent = currentContent;
+		}
+	};
+
 	textarea.addEventListener("input", () => {
 		autoResize();
 		clearTimeout(saveTimeout);
-		saveTimeout = setTimeout(async () => {
-			await updateNote(videoId, note.id, textarea.value);
-		}, 500);
+		saveTimeout = setTimeout(saveNote, 500);
+	});
+
+	// Also save on blur for reliability
+	textarea.addEventListener("blur", () => {
+		clearTimeout(saveTimeout);
+		saveNote();
 	});
 
 	textarea.addEventListener("focus", autoResize);
@@ -128,6 +143,9 @@ export function buildNotesPanel(state: PanelState): HTMLElement {
 				notesList.appendChild(createNoteItem(note, state.videoId, loadNotes));
 			}
 		}
+
+		// Update timeline markers
+		updateMarkersForNotes(state.videoId, notes);
 	};
 
 	addBtn.addEventListener("click", async (e) => {

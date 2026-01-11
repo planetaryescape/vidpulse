@@ -2,7 +2,8 @@ import type { RegenerateVideoResponse } from "../../shared/messages";
 import { MessageType, sendMessage } from "../../shared/messages";
 import type { PanelState } from "../../shared/types";
 import { isFocusModeActive } from "../guardian";
-import { getSession, pauseFocusMode } from "../storage-proxy";
+import { areMarkersVisible, setMarkersVisible } from "../markers";
+import { getSession, getSettings, pauseFocusMode } from "../storage-proxy";
 import {
 	FONT_SIZE_STEP,
 	MAX_FONT_SIZE,
@@ -121,6 +122,33 @@ export async function buildHeader(
 	fontControls.appendChild(decreaseBtn);
 	fontControls.appendChild(increaseBtn);
 	controls.appendChild(fontControls);
+
+	// Markers toggle (only show when analysis ready and markers setting enabled)
+	const settings = await getSettings();
+	if (
+		settings.showTimelineMarkers &&
+		(state.status === "ready" || state.status === "partial")
+	) {
+		const markersBtn = document.createElement("button");
+		markersBtn.className = "vp-markers-btn";
+		markersBtn.setAttribute("type", "button");
+		const visible = areMarkersVisible();
+		markersBtn.textContent = visible ? "\u25CF" : "\u25CB"; // ● filled vs ○ empty
+		markersBtn.title = visible
+			? "Hide timeline markers"
+			: "Show timeline markers";
+		markersBtn.addEventListener("click", (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			const nowVisible = !areMarkersVisible();
+			setMarkersVisible(nowVisible);
+			markersBtn.textContent = nowVisible ? "\u25CF" : "\u25CB";
+			markersBtn.title = nowVisible
+				? "Hide timeline markers"
+				: "Show timeline markers";
+		});
+		controls.appendChild(markersBtn);
+	}
 
 	if (state.status === "ready") {
 		const regenerateBtn = document.createElement("button");

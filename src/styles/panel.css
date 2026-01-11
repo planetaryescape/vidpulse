@@ -719,6 +719,23 @@
 	background: rgba(245, 158, 11, 0.1);
 }
 
+.vp-markers-btn {
+	background: none;
+	border: none;
+	color: var(--vp-text-secondary);
+	font-size: 12px;
+	cursor: pointer;
+	padding: 4px 6px;
+	line-height: 1;
+	transition: all 0.2s;
+	border-radius: 4px;
+}
+
+.vp-markers-btn:hover {
+	color: var(--vp-accent);
+	background: rgba(62, 166, 255, 0.1);
+}
+
 /* ============================================
    FEEDBACK BUTTONS - Distinctive Design
    ============================================ */
@@ -1820,4 +1837,171 @@
 .vp-confidence-label {
 	font-size: calc(10px * var(--vp-font-scale));
 	color: var(--vp-text-tertiary);
+}
+
+/* ============================================
+   TIMELINE MARKERS
+   ============================================ */
+
+.vp-markers-container {
+	position: absolute;
+	bottom: 48px; /* Above .ytp-chrome-bottom controls */
+	left: 12px; /* Match .ytp-chrome-bottom padding */
+	right: 12px;
+	height: 50px;
+	pointer-events: none;
+	z-index: 100;
+	opacity: 0;
+	transition: opacity 0.25s ease;
+}
+
+/* Show when YouTube controls visible (mouse active) */
+.html5-video-player:not(.ytp-autohide) .vp-markers-container {
+	opacity: 0.35;
+}
+
+/* Fade in fully when any marker is hovered */
+.html5-video-player:not(.ytp-autohide)
+.vp-markers-container:has(.vp-marker:hover) {
+	opacity: 1;
+}
+
+.vp-marker {
+	position: absolute;
+	bottom: 0;
+	height: 100%;
+	width: 28px;
+	transform: translateX(-50%);
+	pointer-events: auto;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 101;
+}
+
+.vp-marker-line {
+	width: 10px;
+	height: 24px;
+	border-radius: 4px;
+	transition:
+		transform 0.15s ease,
+		box-shadow 0.15s ease,
+		opacity 0.15s ease;
+}
+
+.vp-marker-chapter .vp-marker-line {
+	background: var(--vp-accent);
+}
+
+.vp-marker-note .vp-marker-line {
+	background: var(--vp-score-high);
+}
+
+.vp-marker:hover .vp-marker-line {
+	transform: scale(1.2);
+	box-shadow: 0 0 8px currentColor;
+}
+
+.vp-marker-chapter:hover .vp-marker-line {
+	box-shadow: 0 0 6px var(--vp-accent);
+}
+
+.vp-marker-note:hover .vp-marker-line {
+	box-shadow: 0 0 6px var(--vp-score-high);
+}
+
+.vp-marker-tooltip {
+	position: absolute;
+	bottom: calc(100% + 8px);
+	left: 50%;
+	transform: translateX(-50%);
+	background: var(--vp-bg-card);
+	border: 1px solid var(--vp-border);
+	border-radius: 8px;
+	padding: 10px 14px;
+	opacity: 0;
+	visibility: hidden;
+	transition:
+		opacity 0.15s ease,
+		visibility 0.15s ease;
+	pointer-events: none;
+	z-index: 100;
+	white-space: normal;
+	min-width: 280px;
+	max-width: 320px;
+	font-family: "JetBrains Mono", monospace;
+	font-size: 13px;
+	line-height: 1.5;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Edge positioning - left side */
+.vp-marker-edge-left .vp-marker-tooltip {
+	left: 0;
+	transform: translateX(0);
+}
+
+/* Edge positioning - right side */
+.vp-marker-edge-right .vp-marker-tooltip {
+	left: auto;
+	right: 0;
+	transform: translateX(0);
+}
+
+.vp-marker:hover .vp-marker-tooltip {
+	opacity: 1;
+	visibility: visible;
+}
+
+.vp-marker-time {
+	color: var(--vp-accent);
+	font-weight: 600;
+	font-size: 12px;
+	display: block;
+	margin-bottom: 4px;
+}
+
+.vp-marker-label {
+	color: var(--vp-text-primary);
+	font-weight: 600;
+	font-size: 14px;
+	display: block;
+}
+
+.vp-marker-description {
+	color: var(--vp-text-secondary);
+	font-weight: 400;
+	font-size: 12px;
+	margin-top: 6px;
+	line-height: 1.4;
+}
+
+.vp-marker-note-content {
+	color: var(--vp-text-primary);
+	font-weight: 400;
+	white-space: pre-wrap;
+	word-break: break-word;
+	max-width: 250px;
+	max-height: 150px;
+	overflow-y: auto;
+}
+
+/* Scrollbar for note content */
+.vp-marker-note-content::-webkit-scrollbar {
+	width: 4px;
+}
+
+.vp-marker-note-content::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.vp-marker-note-content::-webkit-scrollbar-thumb {
+	background: var(--vp-border);
+	border-radius: 2px;
+}
+
+/* Note marker tooltip - green accent */
+.vp-marker-note .vp-marker-time {
+	color: var(--vp-score-high);
 }

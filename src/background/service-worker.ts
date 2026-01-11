@@ -53,6 +53,7 @@ import {
 	updateLikedChannelSubscription,
 	updatePoliticalPosition,
 	updateSessionActivity,
+	updateSessionWatchTime,
 } from "../shared/storage";
 import type {
 	KeyPoint,
@@ -1233,14 +1234,21 @@ chrome.runtime.onMessage.addListener(
 					}
 
 					case MessageType.STORAGE_END_VIDEO_IN_SESSION: {
-						const { videoId } = message;
-						await endVideoInSession(videoId);
+						const { videoId, watchDuration } = message;
+						await endVideoInSession(videoId, watchDuration);
 						sendResponse({ success: true });
 						break;
 					}
 
 					case MessageType.STORAGE_UPDATE_SESSION_ACTIVITY: {
 						await updateSessionActivity();
+						sendResponse({ success: true });
+						break;
+					}
+
+					case MessageType.STORAGE_UPDATE_SESSION_WATCH_TIME: {
+						const { additionalSeconds } = message;
+						await updateSessionWatchTime(additionalSeconds);
 						sendResponse({ success: true });
 						break;
 					}

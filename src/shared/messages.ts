@@ -29,6 +29,7 @@ export const MessageType = {
 	STORAGE_ADD_VIDEO_TO_SESSION: "STORAGE_ADD_VIDEO_TO_SESSION",
 	STORAGE_END_VIDEO_IN_SESSION: "STORAGE_END_VIDEO_IN_SESSION",
 	STORAGE_UPDATE_SESSION_ACTIVITY: "STORAGE_UPDATE_SESSION_ACTIVITY",
+	STORAGE_UPDATE_SESSION_WATCH_TIME: "STORAGE_UPDATE_SESSION_WATCH_TIME",
 	STORAGE_SET_SESSION_INTENT: "STORAGE_SET_SESSION_INTENT",
 	STORAGE_GET_CHANNEL_STATS: "STORAGE_GET_CHANNEL_STATS",
 	STORAGE_UPDATE_CHANNEL_STATS: "STORAGE_UPDATE_CHANNEL_STATS",
@@ -121,10 +122,16 @@ export interface StorageAddVideoToSessionRequest {
 export interface StorageEndVideoInSessionRequest {
 	type: typeof MessageType.STORAGE_END_VIDEO_IN_SESSION;
 	videoId: string;
+	watchDuration?: number; // actual seconds watched
 }
 
 export interface StorageUpdateSessionActivityRequest {
 	type: typeof MessageType.STORAGE_UPDATE_SESSION_ACTIVITY;
+}
+
+export interface StorageUpdateSessionWatchTimeRequest {
+	type: typeof MessageType.STORAGE_UPDATE_SESSION_WATCH_TIME;
+	additionalSeconds: number;
 }
 
 export interface StorageSetSessionIntentRequest {
@@ -242,6 +249,7 @@ export type Message =
 	| StorageAddVideoToSessionRequest
 	| StorageEndVideoInSessionRequest
 	| StorageUpdateSessionActivityRequest
+	| StorageUpdateSessionWatchTimeRequest
 	| StorageSetSessionIntentRequest
 	| StorageGetChannelStatsRequest
 	| StorageUpdateChannelStatsRequest
