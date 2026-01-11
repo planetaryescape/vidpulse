@@ -1848,7 +1848,7 @@
 	bottom: 48px; /* Above .ytp-chrome-bottom controls */
 	left: 12px; /* Match .ytp-chrome-bottom padding */
 	right: 12px;
-	height: 50px;
+	height: 20px;
 	pointer-events: none;
 	z-index: 100;
 	opacity: 0;
@@ -1881,9 +1881,9 @@
 }
 
 .vp-marker-line {
-	width: 10px;
-	height: 24px;
-	border-radius: 4px;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
 	transition:
 		transform 0.15s ease,
 		box-shadow 0.15s ease,
@@ -1913,7 +1913,7 @@
 
 .vp-marker-tooltip {
 	position: absolute;
-	bottom: calc(100% + 8px);
+	bottom: 100%;
 	left: 50%;
 	transform: translateX(-50%);
 	background: var(--vp-bg-card);
@@ -1952,6 +1952,7 @@
 .vp-marker:hover .vp-marker-tooltip {
 	opacity: 1;
 	visibility: visible;
+	pointer-events: auto;
 }
 
 .vp-marker-time {
