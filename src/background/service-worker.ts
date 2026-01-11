@@ -773,11 +773,32 @@ async function analyzeVideo(
 	}
 
 	// Phase 2: Background - Chapters, Tags, Political analysis
-	const [tags, keyPoints, politicalResult] = await Promise.all([
+	// Only make API calls for enabled features
+	const phase2Promises: Promise<unknown>[] = [
 		generateTags(apiKey, settings, content),
-		extractKeyPoints(apiKey, settings, content),
-		analyzePoliticalContent(apiKey, settings, content),
-	]);
+	];
+
+	// Only extract key points if chapters are enabled
+	const keyPointsPromise =
+		settings.showChapters !== false
+			? extractKeyPoints(apiKey, settings, content)
+			: Promise.resolve([]);
+	phase2Promises.push(keyPointsPromise);
+
+	// Only analyze political content if political analysis is enabled
+	const politicalPromise =
+		settings.showPoliticalAnalysis !== false
+			? analyzePoliticalContent(apiKey, settings, content)
+			: Promise.resolve({ hasPoliticalContent: false });
+	phase2Promises.push(politicalPromise);
+
+	const [tags, keyPoints, politicalResult] = (await Promise.all(
+		phase2Promises,
+	)) as [
+		string[],
+		Awaited<ReturnType<typeof extractKeyPoints>>,
+		Awaited<ReturnType<typeof analyzePoliticalContent>>,
+	];
 
 	// Build final scores with optional political data
 	const finalScores = {
@@ -1342,6 +1363,15 @@ chrome.runtime.onMessage.addListener(
 					case MessageType.SEARCH_RELATED_CONTENT: {
 						const { videoId, summary, tags } = message;
 						const settings = await getSettings();
+
+						// Skip if feature is disabled
+						if (settings.showRelatedContent === false) {
+							sendResponse({
+								success: false,
+								error: "Related content feature is disabled",
+							} satisfies SearchRelatedContentResponse);
+							return;
+						}
 
 						if (!settings.braveApiKey) {
 							sendResponse({
