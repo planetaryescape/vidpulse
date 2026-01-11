@@ -1,6 +1,7 @@
 // Expanded overlay panel: verdict, relevance score, all 5 score bars
 
 import type { VideoAnalysis } from "../../shared/types";
+import { createPoliticalBadge } from "../panel/political-badge";
 import { OVERLAY_EXPANDED_ID } from "./constants";
 
 const SCORE_LABELS: Record<string, string> = {
@@ -44,6 +45,29 @@ export function createExpandedPanel(analysis: VideoAnalysis): HTMLElement {
 	}
 
 	panel.appendChild(header);
+
+	// Political badge (only if political data available)
+	if (analysis.scores.hasPoliticalContent !== undefined) {
+		const politicalRow = document.createElement("div");
+		politicalRow.className = "vp-overlay-political";
+
+		const badge = createPoliticalBadge(
+			analysis.scores.politicalX,
+			analysis.scores.politicalY,
+			analysis.scores.hasPoliticalContent,
+			analysis.perspective,
+		);
+		politicalRow.appendChild(badge);
+
+		if (analysis.perspective && analysis.scores.hasPoliticalContent) {
+			const perspectiveEl = document.createElement("span");
+			perspectiveEl.className = "vp-overlay-perspective";
+			perspectiveEl.textContent = analysis.perspective;
+			politicalRow.appendChild(perspectiveEl);
+		}
+
+		panel.appendChild(politicalRow);
+	}
 
 	// Score bars
 	const scoresContainer = document.createElement("div");
