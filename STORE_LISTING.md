@@ -70,15 +70,39 @@ Take notes while watching:
 - Optional focus mode for work hours
 - Entertainment blocking during focus time
 
+### Blind Spot Detection
+- Alerts when consuming narrow range of perspectives
+- Shows which viewpoints you're missing on topics
+- Coverage indicator for perspective diversity
+- Helps avoid echo chambers
+
+### Check-in Prompts
+- Periodic "Still intentional?" reminders during long sessions
+- Shows session summary: watch time, videos by category
+- Configurable interval (15-60 minutes)
+- Option to take break or continue
+
+### GDPR Data Controls
+- Export all your data as JSON
+- Granular deletion: remove history while keeping preferences
+- Complete account reset option
+- API keys stored locally, never synced
+
 ### Watch Quality Awareness
 - Session timer tracks actual watch time
-- Understand your viewing patterns by content quality
-- Daily stats and channel analytics
+- Time filters: Today, Week, Month, Year, Custom
+- Category charts and visualizations
+- Daily/weekly digests and channel analytics
 - Make more intentional watching decisions
 
 ### Related Content
 - Find tutorials, articles, and guides related to the video
 - Powered by Brave Search (optional, requires API key)
+
+### Feature Toggles
+- Disable expensive features to save API costs
+- Toggle: chapters, related content, analysis depth
+- Control which analysis steps run per video
 
 ### Privacy First
 - Your API keys stay on your device (never synced)
@@ -159,7 +183,6 @@ For Chrome Web Store privacy practices form:
 | `storage` | Save user settings, cache video analysis results locally, store learned preferences, video notes |
 | `activeTab` | Detect current YouTube video URL to trigger analysis |
 | `tabs` | Send re-analyze command when user clicks extension icon |
-| `scripting` | Inject analysis panel, timeline markers, and video overlay into YouTube video pages |
 
 **Host Permissions:**
 
@@ -191,6 +214,7 @@ No - data is only sent to APIs the user explicitly configures with their own key
 - Learned content preferences (Chrome sync)
 - Session viewing history (cleared on browser close)
 - Timestamped video notes (local only)
+- Perspective analysis data for videos (local only)
 
 **"How long is data retained?"**
 - Analysis cache: Configurable, default 365 days
