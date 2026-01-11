@@ -1534,7 +1534,12 @@ chrome.runtime.onStartup.addListener(() => {
 });
 
 // Also cleanup when extension is installed/updated
-chrome.runtime.onInstalled.addListener(async () => {
+chrome.runtime.onInstalled.addListener(async ({ reason }) => {
+	// Open settings on first install
+	if (reason === "install") {
+		chrome.runtime.openOptionsPage();
+	}
+
 	cleanupCache();
 
 	// Migration: initialize new fields for existing users
