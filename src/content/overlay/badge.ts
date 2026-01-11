@@ -98,6 +98,28 @@ function getVerdictIcon(verdict: VideoAnalysis["verdict"]): string {
 	}
 }
 
+// Set loading state on feedback button
+export function setBadgeLoading(
+	feedback: "like" | "dislike",
+	loading: boolean,
+): void {
+	const badge = document.getElementById(OVERLAY_BADGE_ID);
+	if (!badge) return;
+
+	const btn = badge.querySelector(
+		feedback === "like" ? ".vp-overlay-like" : ".vp-overlay-dislike",
+	) as HTMLButtonElement;
+
+	if (!btn) return;
+
+	if (loading) {
+		btn.classList.add("vp-overlay-fb-loading");
+		btn.disabled = true;
+	} else {
+		btn.classList.remove("vp-overlay-fb-loading");
+	}
+}
+
 // Update feedback button states after vote
 export function updateBadgeFeedback(
 	feedback: "like" | "dislike",

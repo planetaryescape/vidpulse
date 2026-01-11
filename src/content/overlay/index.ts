@@ -5,7 +5,7 @@ import { MessageType, sendMessage } from "../../shared/messages";
 import type { PanelState } from "../../shared/types";
 import { getChannelInfo } from "../panel/channel";
 import { getVideoTitle } from "../panel/video";
-import { createBadge, updateBadgeFeedback } from "./badge";
+import { createBadge, setBadgeLoading, updateBadgeFeedback } from "./badge";
 import { OVERLAY_EXPANDED_ID, OVERLAY_ID } from "./constants";
 import {
 	findPlayerContainer,
@@ -123,6 +123,8 @@ async function handleFeedback(feedback: "like" | "dislike"): Promise<void> {
 	const state = getState();
 	if (!state?.analysis) return;
 
+	setBadgeLoading(feedback, true);
+
 	try {
 		const channelInfo = getChannelInfo() || undefined;
 		const response = await sendMessage<SubmitFeedbackResponse>({
@@ -135,11 +137,13 @@ async function handleFeedback(feedback: "like" | "dislike"): Promise<void> {
 		});
 
 		const success = response.success;
+		setBadgeLoading(feedback, false);
 		updateBadgeFeedback(feedback, success);
 
 		// Dispatch event to sync with panel
 		dispatchFeedbackEvent({ feedback, success });
 	} catch {
+		setBadgeLoading(feedback, false);
 		updateBadgeFeedback(feedback, false);
 	}
 }

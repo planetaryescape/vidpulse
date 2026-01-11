@@ -3,7 +3,7 @@
 /* Overlay container */
 .vp-overlay {
 	position: absolute;
-	bottom: 60px; /* Above progress bar */
+	bottom: 90px; /* Above progress bar and markers */
 	left: 50%;
 	transform: translateX(-50%);
 	z-index: 60;
@@ -136,6 +136,27 @@
 	background: rgba(239, 68, 68, 0.2);
 	border-color: #ef4444;
 	color: #ef4444;
+}
+
+/* Loading spinner */
+.vp-overlay-fb-btn.vp-overlay-fb-loading .vp-overlay-fb-icon {
+	display: none;
+}
+
+.vp-overlay-fb-btn.vp-overlay-fb-loading::after {
+	content: "";
+	width: 12px;
+	height: 12px;
+	border: 2px solid rgba(255, 255, 255, 0.2);
+	border-top-color: currentColor;
+	border-radius: 50%;
+	animation: vp-spin 0.6s linear infinite;
+}
+
+@keyframes vp-spin {
+	to {
+		transform: rotate(360deg);
+	}
 }
 
 /* Expanded panel - appears above badge via column-reverse */
