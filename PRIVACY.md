@@ -1,112 +1,82 @@
-# Privacy Policy for VidPulse
+# VidPulse Privacy Policy
 
-**Last Updated:** January 2025
+**Last updated:** January 10, 2026
 
-VidPulse is a Chrome extension that analyzes YouTube videos using AI. This policy explains what data we collect and how we handle it.
+## What VidPulse Does
 
-## Data Collection
+VidPulse is a Chrome extension that analyzes YouTube videos using AI to help you decide if a video is worth your time. It displays summaries, quality scores, and personalized recommendations directly on YouTube.
 
-### What We Collect
+## Data We Collect
 
-**User-Provided Data:**
-- OpenRouter API key (required) - stored locally on your device only
-- Brave Search API key (optional) - stored locally on your device only
-- "About Me" profile text - synced across your Chrome devices
-- Manual preferences - synced across your Chrome devices
+### Stored Locally on Your Device
 
-**Automatically Collected:**
-- Video analysis results (summaries, scores, tags) - cached locally
-- Like/dislike feedback on analyzed videos - stored locally
-- Learned preferences from your feedback - synced across devices
-- Session viewing history - temporary, cleared when browser closes
-- Video notes/bookmarks - stored locally
+| Data | Purpose | Retention |
+|------|---------|-----------|
+| **API keys** | OpenRouter and optional Brave Search authentication | Until you delete |
+| **Settings** | Your preferences and configuration | Until you delete |
+| **Learned preferences** | Likes/dislikes to personalize recommendations | Until you delete |
+| **Video notes** | Timestamped notes you create on videos | Until you delete |
+| **Analysis cache** | Cached results to avoid redundant API calls | Configurable (default 365 days) |
+| **Feedback history** | Your like/dislike actions | Last 100 entries |
+| **Session data** | Current viewing session stats | Cleared when browser closes |
 
-### What We Don't Collect
+All data is stored in Chrome's local storage on your device. It is **not** sent to VidPulse developers or any third party (except the API services you configure).
 
-- Personal identification information
-- Browsing history outside YouTube
-- YouTube account credentials
-- Data for advertising purposes
+### Sent to Third-Party Services
 
-## How We Use Your Data
+When you view a YouTube video, VidPulse sends the video URL to:
 
-**Video Analysis:**
-- Your OpenRouter API key authenticates requests to AI models (Gemini, Claude, GPT)
-- YouTube video URLs and content are sent to OpenRouter for analysis
-- Analysis results are cached locally to avoid repeated API calls
+- **OpenRouter** (openrouter.ai) — to analyze video content using AI models (Gemini, Claude, GPT). Uses your own API key.
 
-**Personalization:**
-- Your feedback (likes/dislikes) trains preference learning
-- Learned preferences improve future recommendations
-- "About Me" text provides context for personalized analysis
+If you configure a Brave API key:
 
-**Related Content:**
-- If configured, Brave Search API finds related tutorials/articles
-- Search queries based on video topics are sent to Brave
+- **Brave Search** (api.search.brave.com) — to fetch related tutorials, articles, and guides. Uses your own API key.
 
-## External Services
+These services have their own privacy policies:
+- OpenRouter: https://openrouter.ai/privacy
+- Brave: https://brave.com/privacy/browser/
 
-### OpenRouter API
-- **What's sent:** YouTube video data, analysis prompts
-- **Purpose:** AI-powered video analysis (routes to Gemini, Claude, GPT models)
-- **OpenRouter's privacy:** https://openrouter.ai/privacy
+VidPulse uses **your own API keys**. We never see your API keys or the data sent to these services.
 
-### Brave Search API (Optional)
-- **What's sent:** Search queries based on video topics
-- **Purpose:** Finding related content
-- **Brave's privacy:** https://brave.com/privacy/browser/
+## Data We Do NOT Collect
+
+- We do not collect personally identifiable information
+- We do not track you across websites
+- We do not sell or share your data
+- We do not have servers that receive your data
+- We do not use analytics or telemetry
+- We do not display advertisements
 
 ## Data Storage
 
-| Data Type | Location | Sync | Retention |
-|-----------|----------|------|-----------|
-| API keys | chrome.storage.local | No | Until deleted |
-| Settings/preferences | chrome.storage.sync | Yes | Until deleted |
-| Learned memories | chrome.storage.sync | Yes | Until deleted |
-| Video cache | chrome.storage.local | No | Configurable (default 365 days) |
-| Feedback history | chrome.storage.local | No | Last 100 entries |
-| Session data | chrome.storage.session | No | Cleared on browser close |
-| Video notes | chrome.storage.local | No | Until deleted |
+All data remains on your device in Chrome's extension storage:
 
-## Your Controls
+- **Local storage** (`chrome.storage.local`) — API keys, cache, notes, feedback
+- **Sync storage** (`chrome.storage.sync`) — Settings, learned preferences (syncs across your Chrome devices)
+- **Session storage** (`chrome.storage.session`) — Temporary session data
 
-**Clear Cached Data:**
-- Options page > Clear cache
+Uninstalling the extension deletes all stored data.
 
-**Delete Learned Preferences:**
-- Options page > Memory section > Clear all
+## Your Control
 
-**Remove API Keys:**
-- Options page > Delete API key fields
+You have full control over your data:
 
-**Uninstall:**
-- Removing the extension deletes all locally stored data
-
-## Data Security
-
-- API keys are stored locally only (never synced to cloud)
-- All API communications use HTTPS
-- No data is sent to VidPulse developers or third parties (other than Gemini/Brave APIs)
-- Extension code is open source and auditable
-
-## No Tracking
-
-VidPulse does not:
-- Include analytics or telemetry
-- Track user behavior
-- Sell or share data with third parties
-- Display advertisements
+- **Clear cache** — Options page → Clear cached analyses
+- **Delete preferences** — Options page → Memory section → Clear all
+- **Remove API keys** — Options page → Delete API key fields
+- **Delete notes** — Notes tab → Delete individual notes
+- **Uninstall** — Removes all VidPulse data from your device
 
 ## Children's Privacy
 
 VidPulse is not directed at children under 13. We do not knowingly collect data from children.
 
-## Changes to This Policy
+## Changes
 
-Updates will be posted to this file with a new "Last Updated" date. Significant changes will be noted in release notes.
+We may update this policy. Changes will be reflected in the "Last updated" date. Significant changes will be noted in release notes.
 
 ## Contact
 
 For privacy questions or concerns:
-- Email: vidpulse@bhekani.com
 - GitHub: https://github.com/planetaryescape/vidpulse/issues
+- Email: vidpulse@bhekani.com

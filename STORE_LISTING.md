@@ -17,7 +17,7 @@ Stop wasting time on clickbait. VidPulse is a mindful video consumption tool tha
 
 **Smart Analysis**
 - AI-generated video summaries
-- Key points extraction
+- Key points extraction with timestamps
 - Chapter breakdowns
 - Relevant tags
 
@@ -37,15 +37,48 @@ Get a clear recommendation: Worth It, Maybe, or Skip - personalized to your pref
 - VidPulse learns what content you value
 - Future analysis becomes more relevant to your interests
 
-**Quality Threshold Guardian**
+### Timeline Markers
+
+Visual markers directly on YouTube's progress bar:
+- **Chapter markers** show AI-extracted key sections
+- **Note markers** show your personal bookmarks
+- Click any marker to jump to that moment
+- Hover for title, description, or note content
+- Semi-transparent when idle, visible when needed
+
+### Video Overlay
+
+Quick access badge visible on the video itself:
+- See verdict at a glance (green/yellow/red)
+- Like/dislike without opening sidebar
+- Click to expand full scores panel
+- Perfect for cinema/theater mode
+- Syncs with YouTube's control visibility
+
+### Timestamped Notes
+
+Take notes while watching:
+- Add notes at current video timestamp
+- Click timestamps to jump back
+- Auto-saves as you type
+- See notes as markers on timeline
+- Export to markdown
+
+### Quality Threshold Guardian
 - Set minimum quality thresholds for videos
 - Get warnings before watching low-quality content
 - Optional focus mode for work hours
+- Entertainment blocking during focus time
 
-**Watch Quality Awareness**
-- See analysis history for your current session
+### Watch Quality Awareness
+- Session timer tracks actual watch time
 - Understand your viewing patterns by content quality
+- Daily stats and channel analytics
 - Make more intentional watching decisions
+
+### Related Content
+- Find tutorials, articles, and guides related to the video
+- Powered by Brave Search (optional, requires API key)
 
 ### Privacy First
 - Your API keys stay on your device (never synced)
@@ -82,15 +115,27 @@ Place in `store-assets/screenshots/`:
    - Close-up of the summary tab
    - Show scores, verdict, and summary text
 
-3. **memory-system.png** (1280x800 or 640x400)
+3. **timeline-markers.png** (1280x800 or 640x400)
+   - YouTube video with chapter/note markers visible on progress bar
+   - Show tooltip hovering over a marker
+
+4. **video-overlay.png** (1280x800 or 640x400)
+   - Theater/cinema mode with overlay badge visible
+   - Show expanded state with scores
+
+5. **notes-tab.png** (1280x800 or 640x400)
+   - Notes tab with timestamped notes
+   - Show notes appearing as markers on timeline
+
+6. **memory-system.png** (1280x800 or 640x400)
    - The "For You" or preferences tab
    - Show learned preferences
 
-4. **guardian.png** (1280x800 or 640x400) - Optional
+7. **guardian.png** (1280x800 or 640x400) - Optional
    - Guardian blocking overlay on a low-quality video
    - Shows threshold warning
 
-5. **options-page.png** (1280x800 or 640x400)
+8. **options-page.png** (1280x800 or 640x400)
    - Settings/options page
    - Show API key setup, model config
 
@@ -111,16 +156,16 @@ For Chrome Web Store privacy practices form:
 
 | Permission | Justification |
 |------------|---------------|
-| `storage` | Save user settings, cache video analysis results locally, store learned preferences |
+| `storage` | Save user settings, cache video analysis results locally, store learned preferences, video notes |
 | `activeTab` | Detect current YouTube video URL to trigger analysis |
 | `tabs` | Send re-analyze command when user clicks extension icon |
-| `scripting` | Inject analysis panel UI into YouTube video pages |
+| `scripting` | Inject analysis panel, timeline markers, and video overlay into YouTube video pages |
 
 **Host Permissions:**
 
 | Host | Justification |
 |------|---------------|
-| `youtube.com` | Primary site - inject analysis panel, read video information |
+| `youtube.com` | Primary site - inject analysis panel, timeline markers, video overlay, read video information |
 | `openrouter.ai` | OpenRouter API for AI video analysis (user's own API key) |
 | `api.search.brave.com` | Optional Brave Search API for related content (user's own API key) |
 
@@ -131,7 +176,7 @@ For Chrome Web Store privacy practices form:
 Answers for Chrome Web Store submission form:
 
 **"Does your extension collect user data?"**
-Yes - user preferences, video analysis cache, feedback on videos. All stored locally on device.
+Yes - user preferences, video analysis cache, feedback on videos, timestamped notes. All stored locally on device.
 
 **"Is data sent to external servers?"**
 Yes - video content is sent to OpenRouter for AI analysis (which routes to models like Gemini, Claude, GPT). User provides their own API key. Optionally, search queries sent to Brave Search API for related content.
@@ -145,12 +190,14 @@ No - data is only sent to APIs the user explicitly configures with their own key
 - Like/dislike feedback (local only)
 - Learned content preferences (Chrome sync)
 - Session viewing history (cleared on browser close)
+- Timestamped video notes (local only)
 
 **"How long is data retained?"**
 - Analysis cache: Configurable, default 365 days
 - Feedback history: Last 100 entries
 - Session data: Cleared when browser closes
 - Preferences: Until user deletes
+- Video notes: Until user deletes
 
 ---
 
@@ -163,6 +210,6 @@ No - data is only sent to APIs the user explicitly configures with their own key
 - [ ] Description reviewed for typos
 - [ ] Permissions justified in privacy practices form (see above)
 - [ ] Privacy questionnaire completed (see above)
-- [ ] API key disclosure noted (Gemini, Brave)
+- [ ] API key disclosure noted (OpenRouter, Brave)
 - [ ] Test extension on Chrome latest version
-- [ ] Build passes: `npm run build`
+- [ ] Build passes: `bun run build`

@@ -29,6 +29,8 @@ Stop wasting time on videos that disappoint. Let AI be your filter.
 - **Finds related resources** — Tutorials, articles, guides from the web
 - **Blocks rabbit holes** — Productivity Guardian stops low-value content
 - **Tracks your time** — Session stats, daily analytics, channel insights
+- **Timeline markers** — Visual chapter and note markers on YouTube's progress bar
+- **Video overlay** — Quick verdict and feedback buttons visible in cinema/theater mode
 
 ## Quick Start
 
@@ -80,6 +82,29 @@ Opens automatically on YouTube video pages. Five tabs:
 | **Notes** | Your timestamped bookmarks with export to markdown |
 | **Related** | Web resources (tutorials, articles) via Brave Search |
 
+### Timeline Markers
+
+Visual markers appear on YouTube's progress bar:
+- **Chapter markers** (blue) — AI-extracted key sections from analysis
+- **Note markers** (yellow) — Your personal timestamped notes
+
+Features:
+- Click any marker to jump to that moment in the video
+- Hover to see chapter title/description or note content
+- Wide tooltips with edge-aware positioning (won't overflow screen)
+- Semi-transparent when not hovered
+- Automatically hide/show with YouTube's controls (when mouse idle)
+- Toggle visibility via button in panel header
+
+### Video Overlay
+
+Compact verdict badge visible on the video itself:
+- Shows verdict icon (green/yellow/red)
+- Quick like/dislike buttons for fast feedback
+- Click to expand full scores panel
+- Perfect for cinema/theater mode when sidebar hidden
+- Fades with YouTube controls when mouse idle
+
 ### Memory System
 
 VidPulse learns what you like:
@@ -89,6 +114,7 @@ VidPulse learns what you like:
 3. Similar preferences automatically merge
 4. Future videos scored against your learned taste
 5. See "relevance score" and "enjoyment confidence" in For You tab
+6. **Clickable source links** — preferences link back to source video with timestamp
 
 View and manage learned preferences in Settings > Personalization.
 
@@ -106,7 +132,8 @@ Take notes while watching:
 
 - Click "Add note" to capture current timestamp
 - Click any timestamp to jump to that moment
-- Notes auto-save as you type
+- Notes **auto-save** as you type (with blur fallback)
+- See notes as markers on the video timeline
 - Export single video's notes or all notes as markdown
 
 ### Related Content
@@ -162,10 +189,18 @@ Optional time awareness:
 
 Track your YouTube habits:
 
-- **Session timer** in panel header (duration + video count)
+- **Session timer** in panel header (actual watch time, not wall clock)
 - **Daily stats** — Time by category, video counts
 - **Channel stats** — Average scores per channel, trust badges
 - **Liked channels** — Auto-tracked from liked videos, subscription status
+
+### Progressive Loading
+
+Analysis loads in phases for snappier UX:
+- Phase 1 (fast): Summary, scores, verdict, personalized reasoning
+- Phase 2 (background): Chapters, tags, detailed analysis
+
+Panel appears as soon as Phase 1 completes. Tabs show loading state until their data arrives.
 
 ### Keyboard Shortcuts
 
@@ -175,6 +210,7 @@ Track your YouTube habits:
 | `Shift+L` | Like video (trains preferences) |
 | `Shift+K` | Skip/dislike video |
 | `Shift+R` | Regenerate analysis |
+| `Shift+O` | Toggle overlay expand/collapse |
 | `Escape` | Dismiss overlays |
 
 ## Configuration
@@ -200,6 +236,12 @@ Video Reading requires Gemini (video multimodal). Other operations support Claud
 - Cache invalidates when you update profile or change models
 - Regenerate any video with Shift+R
 
+### Timeline Markers
+
+Enable/disable in Settings:
+- **Show timeline markers** — Toggle chapter and note markers on progress bar
+- Toggle visibility per-session via button in panel header
+
 ## Troubleshooting
 
 ### "API key not configured"
@@ -220,6 +262,11 @@ Add Brave Search API key in Settings.
 
 ### Guardian blocking too much
 Lower threshold in Settings > Productivity Guardian.
+
+### Timeline markers not visible
+- Enable "Show timeline markers" in Settings
+- Check the toggle button in panel header
+- Markers only appear after analysis completes
 
 ## Build Commands
 
