@@ -27,6 +27,7 @@
   "dependencies": {
     "@openrouter/ai-sdk-provider": "^1.5.4",
     "@openrouter/sdk": "^0.3.12",
-    "ai": "^5.0.119"
+    "ai": "^5.0.119",
+    "chart.js": "^4.5.1"
   }
 }

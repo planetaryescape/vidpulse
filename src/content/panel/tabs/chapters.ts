@@ -6,7 +6,13 @@ export function buildChaptersPanel(analysis: VideoAnalysis): HTMLElement {
 	panel.className = "vp-tab-panel";
 	panel.style.display = "none";
 
-	if (analysis.keyPoints && analysis.keyPoints.length > 0) {
+	// undefined = still loading, empty array = no chapters
+	if (analysis.keyPoints === undefined) {
+		const loading = document.createElement("div");
+		loading.className = "vp-chapters-loading";
+		loading.textContent = "Loading chapters...";
+		panel.appendChild(loading);
+	} else if (analysis.keyPoints.length > 0) {
 		const keyPointsList = document.createElement("div");
 		keyPointsList.className = "vp-keypoints-inline";
 

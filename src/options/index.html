@@ -964,6 +964,162 @@
     [role="tabpanel"] .card:last-child {
       margin-bottom: 0;
     }
+
+    /* Analytics Styles */
+    .analytics-filter,
+    .compass-filter {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 8px 16px;
+      background: var(--vp-bg-elevated);
+      border: 1px solid var(--vp-border);
+      color: var(--vp-text-secondary);
+      cursor: pointer;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      transition: all 0.2s;
+    }
+
+    .filter-btn:hover {
+      background: var(--vp-bg-card);
+      color: var(--vp-text-primary);
+    }
+
+    .filter-btn.active {
+      background: var(--vp-accent-dim);
+      border-color: var(--vp-accent);
+      color: var(--vp-accent);
+    }
+
+    .analytics-summary {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-box {
+      flex: 1;
+      text-align: center;
+      padding: 16px;
+      background: var(--vp-bg-elevated);
+      border-radius: 8px;
+      border: 1px solid var(--vp-border);
+    }
+
+    .stat-value {
+      display: block;
+      font-size: 1.5rem;
+      color: var(--vp-accent);
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--vp-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .charts-row {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .chart-container {
+      flex: 1;
+      background: var(--vp-bg-elevated);
+      border-radius: 8px;
+      padding: 16px;
+      border: 1px solid var(--vp-border);
+    }
+
+    .chart-container h4 {
+      font-family: 'Crimson Pro', serif;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+      color: var(--vp-text-primary);
+    }
+
+    .custom-date-range {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding: 12px;
+      background: var(--vp-bg-elevated);
+      border-radius: 4px;
+    }
+
+    .custom-date-range input[type="date"] {
+      width: auto;
+      padding: 8px;
+    }
+
+    .custom-date-range span {
+      color: var(--vp-text-secondary);
+    }
+
+    .compass-container {
+      display: flex;
+      justify-content: center;
+      padding: 16px 0;
+    }
+
+    .compass-description {
+      text-align: center;
+      font-size: 0.875rem;
+      color: var(--vp-text-secondary);
+      margin-top: 8px;
+    }
+
+    .blindspot-alerts {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .blindspot-alert {
+      padding: 16px;
+      background: var(--vp-bg-elevated);
+      border-radius: 8px;
+      border-left: 3px solid var(--vp-accent);
+    }
+
+    .blindspot-alert h5 {
+      font-family: 'Crimson Pro', serif;
+      font-size: 1rem;
+      margin-bottom: 8px;
+      color: var(--vp-text-primary);
+    }
+
+    .blindspot-alert p {
+      font-size: 0.8rem;
+      color: var(--vp-text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .blindspot-suggestion {
+      font-size: 0.75rem;
+      color: var(--vp-accent);
+      font-style: italic;
+    }
+
+    @media (max-width: 768px) {
+      .charts-row {
+        flex-direction: column;
+      }
+      .analytics-summary {
+        flex-direction: column;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1311,14 +1467,88 @@ Example: I'm a software developer interested in productivity, system design, and
         <!-- Insights & Notes Panel -->
         <div role="tabpanel" id="panel-insights" aria-labelledby="tab-insights" hidden>
           <div class="card">
-            <h2 class="card-title">Watch Stats</h2>
+            <h2 class="card-title">Analytics</h2>
             <p class="help-text" style="margin-top: 0; margin-bottom: 16px;">
-              Your YouTube watching patterns over time
+              Your YouTube watching patterns and insights
             </p>
 
-            <div id="digestContent" class="digest-section">
-              <p class="memory-empty">Loading stats...</p>
+            <!-- Time Filters -->
+            <div class="analytics-filter">
+              <button id="filterToday" class="filter-btn">Today</button>
+              <button id="filterWeek" class="filter-btn active">This Week</button>
+              <button id="filterMonth" class="filter-btn">This Month</button>
+              <button id="filterYear" class="filter-btn">This Year</button>
             </div>
+
+            <!-- Summary Stats -->
+            <div id="analyticsSummary" class="analytics-summary">
+              <div class="stat-box">
+                <span class="stat-value" id="totalTime">--</span>
+                <span class="stat-label">Total Time</span>
+              </div>
+              <div class="stat-box">
+                <span class="stat-value" id="totalVideos">--</span>
+                <span class="stat-label">Videos</span>
+              </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="charts-row">
+              <div class="chart-container">
+                <h4>Video Types</h4>
+                <canvas id="pieChart" width="200" height="200"></canvas>
+              </div>
+              <div class="chart-container">
+                <h4>Watch Time by Category</h4>
+                <canvas id="barChart" width="300" height="200"></canvas>
+              </div>
+            </div>
+
+            <!-- Legacy digest content -->
+            <div id="digestContent" class="digest-section" style="display: none;"></div>
+          </div>
+
+          <!-- Political Compass Card -->
+          <div class="card">
+            <h2 class="card-title">Your Content Compass</h2>
+            <p class="help-text" style="margin-top: 0; margin-bottom: 16px;">
+              Where your liked content falls politically (only political content affects this)
+            </p>
+
+            <!-- Date filter for historical view -->
+            <div class="compass-filter">
+              <button id="compassToday" class="filter-btn">Today</button>
+              <button id="compassWeek" class="filter-btn active">This Week</button>
+              <button id="compassMonth" class="filter-btn">This Month</button>
+              <button id="compassYear" class="filter-btn">This Year</button>
+              <button id="compassCustom" class="filter-btn">Custom</button>
+            </div>
+            <div id="customDateRange" class="custom-date-range" style="display: none;">
+              <input type="date" id="compassStartDate">
+              <span>to</span>
+              <input type="date" id="compassEndDate">
+              <button id="applyDateRange" class="secondary">Apply</button>
+            </div>
+
+            <!-- Current position compass -->
+            <div id="politicalCompass" class="compass-container"></div>
+            <p id="compassDescription" class="compass-description"></p>
+
+            <!-- Historical trend chart -->
+            <h4 style="margin-top: 24px;">Position Over Time</h4>
+            <canvas id="compassTrendChart" height="150"></canvas>
+          </div>
+
+          <!-- Blind Spots Card -->
+          <div class="card">
+            <h2 class="card-title">Blind Spots</h2>
+            <p class="help-text" style="margin-top: 0; margin-bottom: 16px;">
+              Perspectives and topics you might be missing
+            </p>
+            <div id="blindSpotAlerts" class="blindspot-alerts">
+              <p class="memory-empty">Analyzing your viewing patterns...</p>
+            </div>
+            <button id="refreshBlindSpots" class="secondary" style="margin-top: 12px;">Refresh Analysis</button>
           </div>
 
           <div class="card">

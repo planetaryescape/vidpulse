@@ -43,6 +43,9 @@ export const MessageType = {
 	REMOVE_LIKED_CHANNEL: "REMOVE_LIKED_CHANNEL",
 	UPDATE_SUBSCRIPTION_STATUS: "UPDATE_SUBSCRIPTION_STATUS",
 	CONDENSE_MEMORIES: "CONDENSE_MEMORIES",
+	// Progressive analysis updates (pushed from background to content)
+	ANALYSIS_PARTIAL: "ANALYSIS_PARTIAL",
+	ANALYSIS_COMPLETE: "ANALYSIS_COMPLETE",
 } as const;
 
 export type MessageType = (typeof MessageType)[keyof typeof MessageType];
@@ -207,6 +210,21 @@ export interface UpdateSubscriptionStatusRequest {
 export interface CondenseMemoriesRequest {
 	type: typeof MessageType.CONDENSE_MEMORIES;
 }
+
+// Pushed messages (background → content, not request/response)
+export interface AnalysisPartialMessage {
+	type: typeof MessageType.ANALYSIS_PARTIAL;
+	videoId: string;
+	analysis: VideoAnalysis;
+}
+
+export interface AnalysisCompleteMessage {
+	type: typeof MessageType.ANALYSIS_COMPLETE;
+	videoId: string;
+	analysis: VideoAnalysis;
+}
+
+export type PushedMessage = AnalysisPartialMessage | AnalysisCompleteMessage;
 
 export type Message =
 	| AnalyzeVideoRequest

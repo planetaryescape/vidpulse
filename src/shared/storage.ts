@@ -1,5 +1,6 @@
 import type {
 	ApiKeys,
+	BlindSpotAnalysis,
 	CacheEntry,
 	ChannelStats,
 	DailyStats,
@@ -8,6 +9,8 @@ import type {
 	MemoryEntry,
 	ModelConfig,
 	NotesIndex,
+	PoliticalPosition,
+	PoliticalSnapshot,
 	SessionData,
 	SessionVideo,
 	Settings,
@@ -345,9 +348,9 @@ function migrateMemoryEntry(entry: MemoryEntry): MemoryEntry {
 	return { ...entry, sources: [] };
 }
 
-// Memory storage (synced across devices)
+// Memory storage (local only - sync has 8KB per-item limit)
 export async function getMemories(): Promise<MemoryEntry[]> {
-	const result = await chrome.storage.sync.get(MEMORIES_KEY);
+	const result = await chrome.storage.local.get(MEMORIES_KEY);
 	const raw = (result[MEMORIES_KEY] || []) as MemoryEntry[];
 	return raw.map(migrateMemoryEntry);
 }
@@ -382,7 +385,7 @@ async function triggerRegenerateAboutMe(): Promise<void> {
 export async function addMemory(memory: MemoryEntry): Promise<void> {
 	const memories = await getMemories();
 	memories.push(memory);
-	await chrome.storage.sync.set({ [MEMORIES_KEY]: memories });
+	await chrome.storage.local.set({ [MEMORIES_KEY]: memories });
 	await incrementPreferencesVersion();
 	await triggerRegenerateAboutMe();
 }
@@ -390,7 +393,7 @@ export async function addMemory(memory: MemoryEntry): Promise<void> {
 export async function addMemories(newMemories: MemoryEntry[]): Promise<void> {
 	const memories = await getMemories();
 	memories.push(...newMemories);
-	await chrome.storage.sync.set({ [MEMORIES_KEY]: memories });
+	await chrome.storage.local.set({ [MEMORIES_KEY]: memories });
 	await incrementPreferencesVersion();
 	await triggerRegenerateAboutMe();
 }
@@ -398,13 +401,13 @@ export async function addMemories(newMemories: MemoryEntry[]): Promise<void> {
 export async function removeMemory(memoryId: string): Promise<void> {
 	const memories = await getMemories();
 	const filtered = memories.filter((m) => m.id !== memoryId);
-	await chrome.storage.sync.set({ [MEMORIES_KEY]: filtered });
+	await chrome.storage.local.set({ [MEMORIES_KEY]: filtered });
 	await incrementPreferencesVersion();
 	await triggerRegenerateAboutMe();
 }
 
 export async function clearMemories(): Promise<void> {
-	await chrome.storage.sync.remove(MEMORIES_KEY);
+	await chrome.storage.local.remove(MEMORIES_KEY);
 	await incrementPreferencesVersion();
 	await triggerRegenerateAboutMe();
 }
@@ -419,7 +422,7 @@ export async function updateMemory(
 	if (index === -1) return;
 
 	memories[index] = { ...memories[index], ...updates, updatedAt: Date.now() };
-	await chrome.storage.sync.set({ [MEMORIES_KEY]: memories });
+	await chrome.storage.local.set({ [MEMORIES_KEY]: memories });
 	await incrementPreferencesVersion();
 	await triggerRegenerateAboutMe();
 }
@@ -450,7 +453,7 @@ export async function mergeMemorySource(
 	}
 
 	memory.updatedAt = Date.now();
-	await chrome.storage.sync.set({ [MEMORIES_KEY]: memories });
+	await chrome.storage.local.set({ [MEMORIES_KEY]: memories });
 	await incrementPreferencesVersion();
 	await triggerRegenerateAboutMe();
 }
@@ -459,7 +462,7 @@ export async function mergeMemorySource(
 export async function replaceMemories(
 	newMemories: MemoryEntry[],
 ): Promise<void> {
-	await chrome.storage.sync.set({ [MEMORIES_KEY]: newMemories });
+	await chrome.storage.local.set({ [MEMORIES_KEY]: newMemories });
 	await incrementPreferencesVersion();
 	await triggerRegenerateAboutMe();
 }
@@ -1002,4 +1005,135 @@ export async function deleteAllNotesForVideo(videoId: string): Promise<void> {
 
 	delete allNotes[videoId];
 	await chrome.storage.local.set({ [NOTES_KEY]: allNotes });
+}
+
+// Political position storage (local only)
+const POLITICAL_POSITION_KEY = "vidpulse_political_position";
+const POLITICAL_SNAPSHOTS_KEY = "vidpulse_political_snapshots";
+const BLIND_SPOT_KEY = "vidpulse_blind_spots";
+
+export async function getPoliticalPosition(): Promise<PoliticalPosition | null> {
+	const result = await chrome.storage.local.get(POLITICAL_POSITION_KEY);
+	return (result[POLITICAL_POSITION_KEY] as PoliticalPosition) || null;
+}
+
+export async function updatePoliticalPosition(
+	videoX: number,
+	videoY: number,
+	isLike: boolean,
+): Promise<void> {
+	const current = await getPoliticalPosition();
+	const now = Date.now();
+
+	// Time decay weight: recent feedback matters more (90-day half-life)
+	const baseWeight = isLike ? 0.1 : -0.05;
+
+	if (!current) {
+		// First political video
+		await chrome.storage.local.set({
+			[POLITICAL_POSITION_KEY]: {
+				x: videoX * Math.abs(baseWeight) * 10, // Scale initial position
+				y: videoY * Math.abs(baseWeight) * 10,
+				sampleCount: 1,
+				lastUpdated: now,
+			} as PoliticalPosition,
+		});
+	} else {
+		// Calculate weighted average with time decay
+		const daysSinceLastUpdate =
+			(now - current.lastUpdated) / (1000 * 60 * 60 * 24);
+		const decayFactor = 1 / (1 + daysSinceLastUpdate * 0.01); // 90-day half-life
+
+		const newX = current.x * decayFactor + videoX * baseWeight;
+		const newY = current.y * decayFactor + videoY * baseWeight;
+
+		// Clamp to -100 to 100
+		const clampedX = Math.max(-100, Math.min(100, newX));
+		const clampedY = Math.max(-100, Math.min(100, newY));
+
+		await chrome.storage.local.set({
+			[POLITICAL_POSITION_KEY]: {
+				x: clampedX,
+				y: clampedY,
+				sampleCount: current.sampleCount + 1,
+				lastUpdated: now,
+			} as PoliticalPosition,
+		});
+	}
+
+	// Save daily snapshot if date changed
+	await savePoliticalSnapshot();
+}
+
+export async function savePoliticalSnapshot(): Promise<void> {
+	const position = await getPoliticalPosition();
+	if (!position) return;
+
+	const today = new Date().toISOString().split("T")[0];
+	const result = await chrome.storage.local.get(POLITICAL_SNAPSHOTS_KEY);
+	const snapshots = (result[POLITICAL_SNAPSHOTS_KEY] || {}) as Record<
+		string,
+		PoliticalSnapshot
+	>;
+
+	const existing = snapshots[today];
+	snapshots[today] = {
+		date: today,
+		x: position.x,
+		y: position.y,
+		sampleCount: position.sampleCount,
+		videosContributed: existing ? existing.videosContributed + 1 : 1,
+	};
+
+	// Keep only last 365 days of snapshots
+	const cutoff = new Date();
+	cutoff.setDate(cutoff.getDate() - 365);
+	const cutoffStr = cutoff.toISOString().split("T")[0];
+	for (const date of Object.keys(snapshots)) {
+		if (date < cutoffStr) {
+			delete snapshots[date];
+		}
+	}
+
+	await chrome.storage.local.set({ [POLITICAL_SNAPSHOTS_KEY]: snapshots });
+}
+
+export async function getPoliticalSnapshots(
+	startDate: Date,
+	endDate: Date,
+): Promise<PoliticalSnapshot[]> {
+	const result = await chrome.storage.local.get(POLITICAL_SNAPSHOTS_KEY);
+	const snapshots = (result[POLITICAL_SNAPSHOTS_KEY] || {}) as Record<
+		string,
+		PoliticalSnapshot
+	>;
+
+	const startStr = startDate.toISOString().split("T")[0];
+	const endStr = endDate.toISOString().split("T")[0];
+
+	return Object.values(snapshots)
+		.filter((s) => s.date >= startStr && s.date <= endStr)
+		.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+export async function getAllPoliticalSnapshots(): Promise<
+	Record<string, PoliticalSnapshot>
+> {
+	const result = await chrome.storage.local.get(POLITICAL_SNAPSHOTS_KEY);
+	return (result[POLITICAL_SNAPSHOTS_KEY] || {}) as Record<
+		string,
+		PoliticalSnapshot
+	>;
+}
+
+// Blind spot analysis storage (local only)
+export async function getBlindSpotAnalysis(): Promise<BlindSpotAnalysis | null> {
+	const result = await chrome.storage.local.get(BLIND_SPOT_KEY);
+	return (result[BLIND_SPOT_KEY] as BlindSpotAnalysis) || null;
+}
+
+export async function saveBlindSpotAnalysis(
+	analysis: BlindSpotAnalysis,
+): Promise<void> {
+	await chrome.storage.local.set({ [BLIND_SPOT_KEY]: analysis });
 }

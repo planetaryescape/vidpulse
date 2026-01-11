@@ -13,12 +13,14 @@ import { findOrCreateContainer } from "./container";
 import { createFeedbackButtons } from "./feedback";
 import { applyFontSize, getFontSize } from "./font-size";
 import { buildHeader, setInjectPanelFn } from "./header";
+import { createPoliticalBadge } from "./political-badge";
 import { startSessionTimer, stopSessionTimer } from "./session";
 import {
 	buildErrorContent,
 	buildLoadingContent,
 	buildNoKeyContent,
 } from "./status";
+import { buildAnalysisPanel } from "./tabs/analysis";
 import { buildChaptersPanel } from "./tabs/chapters";
 import { buildForYouPanel } from "./tabs/foryou";
 import { buildNotesPanel } from "./tabs/notes";
@@ -73,6 +75,15 @@ async function buildAnalysisContent(
 	}
 	compactHeader.appendChild(verdictBadge);
 
+	// Add political badge (shows quadrant or "Apolitical")
+	const politicalBadge = createPoliticalBadge(
+		analysis.scores.politicalX,
+		analysis.scores.politicalY,
+		analysis.scores.hasPoliticalContent,
+		analysis.perspective,
+	);
+	compactHeader.appendChild(politicalBadge);
+
 	const tags = document.createElement("div");
 	tags.className = "vp-tags-compact";
 	for (const tag of analysis.tags.slice(0, 4)) {
@@ -85,16 +96,21 @@ async function buildAnalysisContent(
 	const tabBar = document.createElement("div");
 	tabBar.className = "vp-tab-bar";
 
+	// Chapters: disabled only when explicitly empty array (not undefined = loading)
+	const chaptersDisabled =
+		analysis.keyPoints !== undefined && analysis.keyPoints.length === 0;
+
 	const tabDefs = [
-		{ id: "summary", label: "Summary" },
 		{ id: "foryou", label: "For You" },
+		{ id: "summary", label: "Summary" },
 		{
 			id: "chapters",
 			label: "Chapters",
-			disabled: !analysis.keyPoints?.length,
+			disabled: chaptersDisabled,
 		},
 		{ id: "notes", label: "Notes" },
 		{ id: "related", label: "Related" },
+		{ id: "analysis", label: "Analysis" },
 	];
 
 	const tabPanels: Record<string, HTMLElement> = {
@@ -103,6 +119,7 @@ async function buildAnalysisContent(
 		chapters: buildChaptersPanel(analysis),
 		notes: buildNotesPanel(state),
 		related: buildRelatedPanel(state),
+		analysis: buildAnalysisPanel(analysis),
 	};
 
 	tabDefs.forEach((tab, index) => {
@@ -164,7 +181,10 @@ async function buildPanelContent(
 		content.appendChild(buildNoKeyContent(state.videoId));
 	} else if (state.status === "error") {
 		content.appendChild(buildErrorContent(state.error, state.videoId));
-	} else if (state.status === "ready" && state.analysis) {
+	} else if (
+		(state.status === "ready" || state.status === "partial") &&
+		state.analysis
+	) {
 		const analysisContent = await buildAnalysisContent(state.analysis, state);
 		while (analysisContent.firstChild) {
 			content.appendChild(analysisContent.firstChild);
@@ -197,7 +217,8 @@ export async function injectPanel(state: PanelState): Promise<void> {
 			await Promise.all([
 				findOrCreateContainer(),
 				getFontSize(),
-				state.status === "ready" && state.analysis
+				(state.status === "ready" || state.status === "partial") &&
+				state.analysis
 					? sendMessage<GetVideoFeedbackResponse>({
 							type: MessageType.GET_VIDEO_FEEDBACK,
 							videoId: state.videoId,
