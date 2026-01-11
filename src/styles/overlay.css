@@ -243,6 +243,25 @@
 	color: var(--vp-text-primary, #f1f1f1);
 }
 
+/* Political badge row */
+.vp-overlay-political {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 10px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid var(--vp-border, #3f3f3f);
+}
+
+.vp-overlay-perspective {
+	font-size: 9px;
+	color: var(--vp-text-secondary, #aaaaaa);
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 /* State classes */
 .vp-overlay.vp-overlay-open .vp-overlay-verdict-icon {
 	box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
