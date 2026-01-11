@@ -47,6 +47,8 @@ export const MessageType = {
 	// Progressive analysis updates (pushed from background to content)
 	ANALYSIS_PARTIAL: "ANALYSIS_PARTIAL",
 	ANALYSIS_COMPLETE: "ANALYSIS_COMPLETE",
+	// Settings changed (broadcast to content scripts)
+	SETTINGS_CHANGED: "SETTINGS_CHANGED",
 } as const;
 
 export type MessageType = (typeof MessageType)[keyof typeof MessageType];

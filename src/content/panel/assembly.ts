@@ -3,7 +3,7 @@ import { MessageType, sendMessage } from "../../shared/messages";
 import type { PanelState, VideoAnalysis } from "../../shared/types";
 import { getScoreColor } from "../../shared/utils";
 import { getIntentAlignment } from "../intent";
-import { getSession } from "../storage-proxy";
+import { getSession, getSettings } from "../storage-proxy";
 import {
 	buildChannelBadge,
 	updateLikedChannelSubscriptionStatus,
@@ -34,7 +34,7 @@ async function buildAnalysisContent(
 ): Promise<HTMLElement> {
 	const content = document.createDocumentFragment();
 
-	const session = await getSession();
+	const [session, settings] = await Promise.all([getSession(), getSettings()]);
 	if (session?.intent) {
 		const alignment = getIntentAlignment(session.intent, analysis.scores);
 		const intentBadge = document.createElement("div");
@@ -75,14 +75,16 @@ async function buildAnalysisContent(
 	}
 	compactHeader.appendChild(verdictBadge);
 
-	// Add political badge (shows quadrant or "Apolitical")
-	const politicalBadge = createPoliticalBadge(
-		analysis.scores.politicalX,
-		analysis.scores.politicalY,
-		analysis.scores.hasPoliticalContent,
-		analysis.perspective,
-	);
-	compactHeader.appendChild(politicalBadge);
+	// Add political badge (shows quadrant or "Apolitical") if enabled
+	if (settings.showPoliticalAnalysis !== false) {
+		const politicalBadge = createPoliticalBadge(
+			analysis.scores.politicalX,
+			analysis.scores.politicalY,
+			analysis.scores.hasPoliticalContent,
+			analysis.perspective,
+		);
+		compactHeader.appendChild(politicalBadge);
+	}
 
 	const tags = document.createElement("div");
 	tags.className = "vp-tags-compact";
@@ -100,27 +102,41 @@ async function buildAnalysisContent(
 	const chaptersDisabled =
 		analysis.keyPoints !== undefined && analysis.keyPoints.length === 0;
 
-	const tabDefs = [
+	// Build tabs conditionally based on settings
+	const tabDefs: Array<{ id: string; label: string; disabled?: boolean }> = [
 		{ id: "foryou", label: "For You" },
 		{ id: "summary", label: "Summary" },
-		{
+	];
+	const tabPanels: Record<string, HTMLElement> = {
+		foryou: buildForYouPanel(analysis),
+		summary: buildSummaryPanel(analysis),
+	};
+
+	// Add chapters tab if enabled
+	if (settings.showChapters !== false) {
+		tabDefs.push({
 			id: "chapters",
 			label: "Chapters",
 			disabled: chaptersDisabled,
-		},
-		{ id: "notes", label: "Notes" },
-		{ id: "related", label: "Related" },
-		{ id: "analysis", label: "Analysis" },
-	];
+		});
+		tabPanels.chapters = buildChaptersPanel(analysis);
+	}
 
-	const tabPanels: Record<string, HTMLElement> = {
-		summary: buildSummaryPanel(analysis),
-		foryou: buildForYouPanel(analysis),
-		chapters: buildChaptersPanel(analysis),
-		notes: buildNotesPanel(state),
-		related: buildRelatedPanel(state),
-		analysis: buildAnalysisPanel(analysis),
-	};
+	// Always show notes
+	tabDefs.push({ id: "notes", label: "Notes" });
+	tabPanels.notes = buildNotesPanel(state);
+
+	// Add related tab if enabled
+	if (settings.showRelatedContent !== false) {
+		tabDefs.push({ id: "related", label: "Related" });
+		tabPanels.related = buildRelatedPanel(state);
+	}
+
+	// Add analysis tab if enabled
+	if (settings.showPoliticalAnalysis !== false) {
+		tabDefs.push({ id: "analysis", label: "Analysis" });
+		tabPanels.analysis = buildAnalysisPanel(analysis);
+	}
 
 	tabDefs.forEach((tab, index) => {
 		const tabBtn = document.createElement("button");

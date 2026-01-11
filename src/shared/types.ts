@@ -85,6 +85,10 @@ export interface Settings {
 	checkInInterval: number; // minutes between check-ins (0 = disabled)
 	// Timeline markers
 	showTimelineMarkers: boolean; // show chapter/note markers on progress bar
+	// Feature toggles
+	showChapters: boolean; // show chapters tab and extract key points
+	showRelatedContent: boolean; // show related content tab (Brave Search)
+	showPoliticalAnalysis: boolean; // show political analysis tab and badge
 }
 
 // Video source for memory entries (supports multiple sources after merging)

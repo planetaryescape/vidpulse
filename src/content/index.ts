@@ -409,6 +409,22 @@ chrome.runtime.onMessage.addListener((message: PushedMessage) => {
 	}
 });
 
+// Listen for settings changes broadcast from options page
+chrome.runtime.onMessage.addListener((message) => {
+	if (
+		message.type === "SETTINGS_CHANGED" &&
+		currentVideoId &&
+		currentAnalysis
+	) {
+		// Re-inject panel with updated settings
+		injectPanel({
+			status: "ready",
+			videoId: currentVideoId,
+			analysis: currentAnalysis,
+		});
+	}
+});
+
 // Initialize
 setupNavigationListener(handleNavigation);
 setupKeyboardShortcuts();

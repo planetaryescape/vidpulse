@@ -182,6 +182,23 @@ const markersStatusEl = document.getElementById(
 	"markersStatus",
 ) as HTMLDivElement;
 
+// DOM elements - Features
+const showChaptersCheckbox = document.getElementById(
+	"showChapters",
+) as HTMLInputElement;
+const showRelatedContentCheckbox = document.getElementById(
+	"showRelatedContent",
+) as HTMLInputElement;
+const showPoliticalAnalysisCheckbox = document.getElementById(
+	"showPoliticalAnalysis",
+) as HTMLInputElement;
+const saveFeaturesBtn = document.getElementById(
+	"saveFeatures",
+) as HTMLButtonElement;
+const featuresStatusEl = document.getElementById(
+	"featuresStatus",
+) as HTMLDivElement;
+
 // DOM elements - Digest
 const digestContentEl = document.getElementById(
 	"digestContent",
@@ -613,6 +630,12 @@ async function loadSettings(): Promise<void> {
 	// Timeline Markers
 	showTimelineMarkersCheckbox.checked = settings.showTimelineMarkers ?? true;
 
+	// Features
+	showChaptersCheckbox.checked = settings.showChapters ?? true;
+	showRelatedContentCheckbox.checked = settings.showRelatedContent ?? true;
+	showPoliticalAnalysisCheckbox.checked =
+		settings.showPoliticalAnalysis ?? true;
+
 	// Focus Schedule
 	const focusSchedule = await getFocusSchedule();
 	focusEnabledCheckbox.checked = focusSchedule.enabled;
@@ -963,6 +986,37 @@ async function handleSaveTimelineMarkers(): Promise<void> {
 		showStatus(markersStatusEl, "Markers settings saved!", "success");
 	} catch (error) {
 		showStatus(markersStatusEl, "Failed to save", "error");
+		console.error("Save error:", error);
+	}
+}
+
+async function handleSaveFeatures(): Promise<void> {
+	const showChapters = showChaptersCheckbox.checked;
+	const showRelatedContent = showRelatedContentCheckbox.checked;
+	const showPoliticalAnalysis = showPoliticalAnalysisCheckbox.checked;
+
+	try {
+		await saveSettings({
+			showChapters,
+			showRelatedContent,
+			showPoliticalAnalysis,
+		});
+
+		// Broadcast to all YouTube tabs to refresh their panels
+		const tabs = await chrome.tabs.query({ url: "*://www.youtube.com/*" });
+		for (const tab of tabs) {
+			if (tab.id) {
+				chrome.tabs
+					.sendMessage(tab.id, { type: "SETTINGS_CHANGED" })
+					.catch(() => {
+						// Tab might not have content script loaded
+					});
+			}
+		}
+
+		showStatus(featuresStatusEl, "Feature settings saved!", "success");
+	} catch (error) {
+		showStatus(featuresStatusEl, "Failed to save", "error");
 		console.error("Save error:", error);
 	}
 }
@@ -1894,6 +1948,7 @@ refreshLikedChannelsBtn.addEventListener("click", renderLikedChannels);
 saveGuardianBtn.addEventListener("click", handleSaveGuardian);
 saveCheckInBtn.addEventListener("click", handleSaveCheckIn);
 saveTimelineMarkersBtn.addEventListener("click", handleSaveTimelineMarkers);
+saveFeaturesBtn.addEventListener("click", handleSaveFeatures);
 saveFocusBtn.addEventListener("click", handleSaveFocus);
 
 // Notes event listeners

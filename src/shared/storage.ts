@@ -46,6 +46,9 @@ const DEFAULT_SETTINGS: Settings = {
 	checkInEnabled: true,
 	checkInInterval: 30, // 30 minutes default
 	showTimelineMarkers: true, // show chapter/note markers on progress bar
+	showChapters: true,
+	showRelatedContent: true,
+	showPoliticalAnalysis: true,
 };
 
 const CACHE_PREFIX = "cache_";
