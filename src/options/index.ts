@@ -171,6 +171,17 @@ const checkInStatusEl = document.getElementById(
 	"checkInStatus",
 ) as HTMLDivElement;
 
+// DOM elements - Timeline Markers
+const showTimelineMarkersCheckbox = document.getElementById(
+	"showTimelineMarkers",
+) as HTMLInputElement;
+const saveTimelineMarkersBtn = document.getElementById(
+	"saveTimelineMarkers",
+) as HTMLButtonElement;
+const markersStatusEl = document.getElementById(
+	"markersStatus",
+) as HTMLDivElement;
+
 // DOM elements - Digest
 const digestContentEl = document.getElementById(
 	"digestContent",
@@ -599,6 +610,9 @@ async function loadSettings(): Promise<void> {
 	checkInEnabledCheckbox.checked = settings.checkInEnabled || false;
 	checkInIntervalSelect.value = String(settings.checkInInterval || 30);
 
+	// Timeline Markers
+	showTimelineMarkersCheckbox.checked = settings.showTimelineMarkers ?? true;
+
 	// Focus Schedule
 	const focusSchedule = await getFocusSchedule();
 	focusEnabledCheckbox.checked = focusSchedule.enabled;
@@ -937,6 +951,18 @@ async function handleSaveCheckIn(): Promise<void> {
 		showStatus(checkInStatusEl, "Check-in settings saved!", "success");
 	} catch (error) {
 		showStatus(checkInStatusEl, "Failed to save", "error");
+		console.error("Save error:", error);
+	}
+}
+
+async function handleSaveTimelineMarkers(): Promise<void> {
+	const showTimelineMarkers = showTimelineMarkersCheckbox.checked;
+
+	try {
+		await saveSettings({ showTimelineMarkers });
+		showStatus(markersStatusEl, "Markers settings saved!", "success");
+	} catch (error) {
+		showStatus(markersStatusEl, "Failed to save", "error");
 		console.error("Save error:", error);
 	}
 }
@@ -1867,6 +1893,7 @@ clearMemoriesBtn.addEventListener("click", handleClearMemories);
 refreshLikedChannelsBtn.addEventListener("click", renderLikedChannels);
 saveGuardianBtn.addEventListener("click", handleSaveGuardian);
 saveCheckInBtn.addEventListener("click", handleSaveCheckIn);
+saveTimelineMarkersBtn.addEventListener("click", handleSaveTimelineMarkers);
 saveFocusBtn.addEventListener("click", handleSaveFocus);
 
 // Notes event listeners
