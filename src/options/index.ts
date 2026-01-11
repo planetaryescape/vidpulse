@@ -1605,7 +1605,7 @@ async function renderPoliticalCompass(): Promise<void> {
 		const empty = document.createElement("div");
 		empty.className = "compass-empty";
 		empty.textContent =
-			"No political content tracked yet. Like or dislike videos with political content to see your position.";
+			"No perspective data tracked yet. Like or dislike videos with perspective content to see your position.";
 		politicalCompassEl.appendChild(empty);
 		if (compassDescriptionEl) compassDescriptionEl.textContent = "";
 		return;

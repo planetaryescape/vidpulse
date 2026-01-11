@@ -15,7 +15,7 @@ export function buildAnalysisPanel(analysis: VideoAnalysis): HTMLElement {
 	if (isLoading) {
 		const loading = document.createElement("div");
 		loading.className = "vp-analysis-loading";
-		loading.textContent = "Loading political analysis...";
+		loading.textContent = "Loading perspective analysis...";
 		panel.appendChild(loading);
 		return panel;
 	}
@@ -26,7 +26,7 @@ export function buildAnalysisPanel(analysis: VideoAnalysis): HTMLElement {
 
 	const compassTitle = document.createElement("h4");
 	compassTitle.className = "vp-analysis-title";
-	compassTitle.textContent = "Political Compass";
+	compassTitle.textContent = "Perspective Analysis";
 	compassSection.appendChild(compassTitle);
 
 	// Mini compass visualization
@@ -47,7 +47,7 @@ export function buildAnalysisPanel(analysis: VideoAnalysis): HTMLElement {
 		analysis.scores.politicalX === undefined ||
 		analysis.scores.politicalY === undefined
 	) {
-		positionDesc.textContent = "This video does not contain political content.";
+		positionDesc.textContent = "This video has neutral perspective.";
 	} else {
 		const quadrant = getPoliticalQuadrant(
 			analysis.scores.politicalX,
@@ -85,7 +85,7 @@ export function buildAnalysisPanel(analysis: VideoAnalysis): HTMLElement {
 	confidenceText.className = "vp-confidence-label";
 	confidenceText.textContent = analysis.scores.hasPoliticalContent
 		? "Analysis based on video content"
-		: "No political markers detected";
+		: "No perspective markers detected";
 	confidenceSection.appendChild(confidenceText);
 
 	panel.appendChild(confidenceSection);

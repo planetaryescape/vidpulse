@@ -72,10 +72,10 @@ export function createPoliticalBadge(
 		politicalX === undefined ||
 		politicalY === undefined
 	) {
-		// Apolitical content
+		// Neutral content
 		badge.className += " vp-political-apolitical";
-		badge.textContent = "Apolitical";
-		badge.title = "This video does not contain political content";
+		badge.textContent = "Neutral";
+		badge.title = "This video has neutral perspective";
 		return badge;
 	}
 
@@ -126,7 +126,7 @@ export function createMiniCompass(
 		text.setAttribute("font-size", "10");
 		text.setAttribute("text-anchor", "middle");
 		text.setAttribute("dy", "3");
-		text.textContent = "No political content";
+		text.textContent = "Neutral";
 		svg.appendChild(text);
 
 		container.appendChild(svg);
