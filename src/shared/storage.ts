@@ -1159,3 +1159,97 @@ export async function saveBlindSpotAnalysis(
 ): Promise<void> {
 	await chrome.storage.local.set({ [BLIND_SPOT_KEY]: analysis });
 }
+
+// GDPR compliance functions
+
+/**
+ * Export all user data as JSON (GDPR right to portability)
+ * Excludes API keys for security
+ */
+export async function exportAllUserData(): Promise<object> {
+	const [syncResult, localResult, sessionResult, focusSchedule] =
+		await Promise.all([
+			chrome.storage.sync.get(null),
+			chrome.storage.local.get(null),
+			chrome.storage.session.get(SESSION_KEY),
+			getFocusSchedule(),
+		]);
+
+	// Extract cache entries
+	const cacheEntries: Record<string, unknown> = {};
+	for (const [key, value] of Object.entries(localResult)) {
+		if (key.startsWith(CACHE_PREFIX)) {
+			cacheEntries[key] = value;
+		}
+	}
+
+	// Build export object (exclude API keys)
+	const exportData = {
+		exportDate: new Date().toISOString(),
+		version: "1.0",
+		settings: syncResult.settings || {},
+		focusSchedule,
+		memories: localResult[MEMORIES_KEY] || [],
+		feedback: localResult[FEEDBACK_KEY] || [],
+		notes: localResult[NOTES_KEY] || {},
+		channelStats: localResult[CHANNEL_STATS_KEY] || {},
+		likedChannels: localResult[LIKED_CHANNELS_KEY] || {},
+		dailyStats: localResult[DAILY_STATS_KEY] || {},
+		politicalPosition: localResult[POLITICAL_POSITION_KEY] || null,
+		politicalSnapshots: localResult[POLITICAL_SNAPSHOTS_KEY] || {},
+		blindSpots: localResult[BLIND_SPOT_KEY] || null,
+		session: sessionResult[SESSION_KEY] || null,
+		videoCache: cacheEntries,
+	};
+
+	return exportData;
+}
+
+/**
+ * Delete all user-generated data (GDPR right to erasure)
+ * Keeps settings and API keys so user can continue using extension
+ */
+export async function deleteAllUserData(): Promise<void> {
+	// Get all local storage keys to find cache entries
+	const localResult = await chrome.storage.local.get(null);
+	const cacheKeys = Object.keys(localResult).filter((key) =>
+		key.startsWith(CACHE_PREFIX),
+	);
+
+	// Keys to remove from local storage (user data only, not API keys)
+	const localKeysToRemove = [
+		MEMORIES_KEY,
+		FEEDBACK_KEY,
+		NOTES_KEY,
+		CHANNEL_STATS_KEY,
+		LIKED_CHANNELS_KEY,
+		DAILY_STATS_KEY,
+		POLITICAL_POSITION_KEY,
+		POLITICAL_SNAPSHOTS_KEY,
+		BLIND_SPOT_KEY,
+		...cacheKeys,
+	];
+
+	await Promise.all([
+		chrome.storage.local.remove(localKeysToRemove),
+		chrome.storage.session.remove(SESSION_KEY),
+	]);
+
+	// Clear settings cache
+	settingsCache = null;
+}
+
+/**
+ * Delete everything and reset to factory state (GDPR delete account)
+ * Removes all data including API keys and settings
+ */
+export async function deleteAccount(): Promise<void> {
+	await Promise.all([
+		chrome.storage.local.clear(),
+		chrome.storage.sync.clear(),
+		chrome.storage.session.clear(),
+	]);
+
+	// Clear settings cache
+	settingsCache = null;
+}
