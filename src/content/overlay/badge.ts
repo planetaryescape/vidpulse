@@ -61,8 +61,10 @@ export function createBadge(
 		dislikeBtn.disabled = true;
 		if (userFeedback === "like") {
 			likeBtn.classList.add("vp-overlay-fb-active");
+			dislikeBtn.style.display = "none";
 		} else {
 			dislikeBtn.classList.add("vp-overlay-fb-active");
+			likeBtn.style.display = "none";
 		}
 	}
 
@@ -98,6 +100,31 @@ function getVerdictIcon(verdict: VideoAnalysis["verdict"]): string {
 	}
 }
 
+// Set loading state on feedback button
+export function setBadgeLoading(
+	feedback: "like" | "dislike",
+	loading: boolean,
+): void {
+	const badge = document.getElementById(OVERLAY_BADGE_ID);
+	if (!badge) return;
+
+	const likeBtn = badge.querySelector(".vp-overlay-like") as HTMLButtonElement;
+	const dislikeBtn = badge.querySelector(
+		".vp-overlay-dislike",
+	) as HTMLButtonElement;
+	const clickedBtn = feedback === "like" ? likeBtn : dislikeBtn;
+
+	if (!likeBtn || !dislikeBtn) return;
+
+	if (loading) {
+		likeBtn.disabled = true;
+		dislikeBtn.disabled = true;
+		clickedBtn.classList.add("vp-overlay-fb-loading");
+	} else {
+		clickedBtn.classList.remove("vp-overlay-fb-loading");
+	}
+}
+
 // Update feedback button states after vote
 export function updateBadgeFeedback(
 	feedback: "like" | "dislike",
@@ -118,8 +145,10 @@ export function updateBadgeFeedback(
 		dislikeBtn.disabled = true;
 		if (feedback === "like") {
 			likeBtn.classList.add("vp-overlay-fb-active");
+			dislikeBtn.style.display = "none";
 		} else {
 			dislikeBtn.classList.add("vp-overlay-fb-active");
+			likeBtn.style.display = "none";
 		}
 	}
 }
