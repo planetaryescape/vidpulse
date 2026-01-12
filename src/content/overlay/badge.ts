@@ -18,14 +18,17 @@ export function createBadge(
 	container.id = OVERLAY_BADGE_ID;
 	container.className = "vp-overlay-badge-row";
 
-	// Verdict icon
+	// VidPulse icon button
 	const verdictBtn = document.createElement("button");
 	verdictBtn.className = `vp-overlay-verdict-icon vp-verdict-${analysis.verdict}`;
 	verdictBtn.title = "Click to expand details";
 	verdictBtn.setAttribute("type", "button");
 
-	const verdictIcon = getVerdictIcon(analysis.verdict);
-	verdictBtn.textContent = verdictIcon;
+	const logoImg = document.createElement("img");
+	logoImg.src = chrome.runtime.getURL("icons/icon16.png");
+	logoImg.alt = "VidPulse";
+	logoImg.className = "vp-overlay-logo";
+	verdictBtn.appendChild(logoImg);
 
 	verdictBtn.addEventListener("click", (e) => {
 		e.preventDefault();
@@ -87,17 +90,6 @@ export function createBadge(
 	container.appendChild(feedbackContainer);
 
 	return container;
-}
-
-function getVerdictIcon(verdict: VideoAnalysis["verdict"]): string {
-	switch (verdict) {
-		case "worth_it":
-			return "\u2714"; // heavy check mark
-		case "maybe":
-			return "?";
-		case "skip":
-			return "\u2716"; // heavy x
-	}
 }
 
 // Set loading state on feedback button
