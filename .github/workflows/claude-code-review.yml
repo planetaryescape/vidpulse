@@ -38,7 +38,15 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
           plugins: 'code-review@claude-code-plugins'
-          prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
+          prompt: |
+            /code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}
+
+            IMPORTANT REVIEW GUIDELINES:
+            - Focus on significant issues: bugs, security vulnerabilities, logic errors, performance problems
+            - Do NOT be nitpicky about style, formatting, naming conventions, or minor preferences
+            - Skip comments about missing docs/comments unless critical for understanding
+            - Only flag issues that would actually cause problems in production
+            - Be concise and actionable
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
 
