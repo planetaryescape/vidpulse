@@ -70,6 +70,11 @@ const saveCacheBtn = document.getElementById(
 ) as HTMLButtonElement;
 const cacheStatusEl = document.getElementById("cacheStatus") as HTMLDivElement;
 
+// Getting Started card
+const gettingStartedCard = document.getElementById(
+	"gettingStartedCard",
+) as HTMLDivElement;
+
 // DOM elements - Model selectors
 const modelVideoReadingSelect = document.getElementById(
 	"modelVideoReading",
@@ -371,6 +376,19 @@ function showStatus(
 	setTimeout(() => {
 		element.className = "status";
 	}, 3000);
+}
+
+// Show/hide getting started card based on setup state
+function updateGettingStartedCard(settings: Settings): void {
+	const hasApiKey = !!settings.apiKey;
+	const setupComplete = settings.setupComplete ?? false;
+
+	// Show card if API key exists but setup not complete
+	if (hasApiKey && !setupComplete) {
+		gettingStartedCard.style.display = "block";
+	} else {
+		gettingStartedCard.style.display = "none";
+	}
 }
 
 function clearElement(el: HTMLElement): void {
@@ -678,6 +696,9 @@ async function loadSettings(): Promise<void> {
 
 	// Digest
 	renderDigest();
+
+	// Getting started card
+	updateGettingStartedCard(settings);
 }
 
 // OpenRouter API key handlers
@@ -725,6 +746,9 @@ async function handleSaveOpenRouter(): Promise<void> {
 	try {
 		await saveSettings({ apiKey });
 		showStatus(openRouterStatusEl, "Saved!", "success");
+		// Show getting started card after saving API key
+		const settings = await getSettings();
+		updateGettingStartedCard(settings);
 	} catch (error) {
 		showStatus(openRouterStatusEl, "Failed to save", "error");
 		console.error("Save error:", error);

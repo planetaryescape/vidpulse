@@ -1140,6 +1140,25 @@
       <div class="tab-panels">
         <!-- API & Models Panel -->
         <div role="tabpanel" id="panel-api" aria-labelledby="tab-api">
+          <!-- Getting Started Card (shown after API key saved, hidden after first analysis) -->
+          <div id="gettingStartedCard" class="card" style="display: none; border-color: var(--vp-score-high); background: rgba(34, 197, 94, 0.05);">
+            <h2 class="card-title" style="color: var(--vp-score-high);">Setup Complete!</h2>
+            <p style="margin-bottom: 16px; color: var(--vp-text-primary);">
+              Your API key is saved and VidPulse is ready to use.
+            </p>
+            <p style="margin-bottom: 16px; color: var(--vp-text-secondary); font-size: 0.875rem;">
+              Next steps:
+            </p>
+            <ol style="margin-bottom: 16px; padding-left: 20px; color: var(--vp-text-secondary); font-size: 0.875rem; line-height: 1.8;">
+              <li>Go to any YouTube video</li>
+              <li>Click the VidPulse icon in your toolbar</li>
+              <li>See the AI analysis in the sidebar</li>
+            </ol>
+            <a href="https://www.youtube.com" target="_blank">
+              <button type="button">Open YouTube</button>
+            </a>
+          </div>
+
           <div class="card">
             <h2 class="card-title">API Configuration</h2>
 
@@ -1663,7 +1682,7 @@ Example: I'm a software developer interested in productivity, system design, and
     </div>
 
     <footer>
-      <p>VidPulse v1.0.0</p>
+      <p>VidPulse v1.0.1</p>
     </footer>
   </div>
 
