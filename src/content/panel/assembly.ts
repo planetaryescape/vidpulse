@@ -22,11 +22,15 @@ import {
 } from "./status";
 import { buildAnalysisPanel } from "./tabs/analysis";
 import { buildChaptersPanel } from "./tabs/chapters";
+import { buildChatPanel } from "./tabs/chat";
 import { buildForYouPanel } from "./tabs/foryou";
 import { buildNotesPanel } from "./tabs/notes";
 import { buildRelatedPanel } from "./tabs/related";
 import { buildSummaryPanel } from "./tabs/summary";
 import { getVerdictDisplay } from "./utils";
+
+// Track active tab across panel re-renders
+let activeTabId: string | null = null;
 
 async function buildAnalysisContent(
 	analysis: VideoAnalysis,
@@ -126,6 +130,10 @@ async function buildAnalysisContent(
 	tabDefs.push({ id: "notes", label: "Notes" });
 	tabPanels.notes = buildNotesPanel(state);
 
+	// Always show chat
+	tabDefs.push({ id: "chat", label: "Chat" });
+	tabPanels.chat = buildChatPanel(state);
+
 	// Add related tab if enabled
 	if (settings.showRelatedContent !== false) {
 		tabDefs.push({ id: "related", label: "Related" });
@@ -138,11 +146,19 @@ async function buildAnalysisContent(
 		tabPanels.analysis = buildAnalysisPanel(analysis);
 	}
 
-	tabDefs.forEach((tab, index) => {
+	// Determine initial active tab: use saved activeTabId if valid, otherwise first tab
+	const validTabIds = tabDefs.filter((t) => !t.disabled).map((t) => t.id);
+	const initialActiveId =
+		activeTabId && validTabIds.includes(activeTabId)
+			? activeTabId
+			: validTabIds[0];
+
+	tabDefs.forEach((tab) => {
+		const isActive = tab.id === initialActiveId;
 		const tabBtn = document.createElement("button");
 		tabBtn.className =
 			"vp-tab" +
-			(index === 0 ? " vp-tab-active" : "") +
+			(isActive ? " vp-tab-active" : "") +
 			(tab.disabled ? " vp-tab-disabled" : "");
 		tabBtn.setAttribute("type", "button");
 		tabBtn.textContent = tab.label;
@@ -157,11 +173,17 @@ async function buildAnalysisContent(
 				t.classList.remove("vp-tab-active");
 			}
 			tabBtn.classList.add("vp-tab-active");
+			activeTabId = tab.id; // Persist selection
 			Object.entries(tabPanels).forEach(([id, panel]) => {
 				panel.style.display = id === tab.id ? "block" : "none";
 			});
 		});
 		tabBar.appendChild(tabBtn);
+	});
+
+	// Set initial panel visibility based on active tab
+	Object.entries(tabPanels).forEach(([id, panel]) => {
+		panel.style.display = id === initialActiveId ? "block" : "none";
 	});
 
 	const tabContent = document.createElement("div");

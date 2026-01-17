@@ -4,7 +4,11 @@
 
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { OpenRouter } from "@openrouter/sdk";
-import { generateText as aiGenerateText } from "ai";
+import {
+	generateText as aiGenerateText,
+	streamText as aiStreamText,
+	type CoreMessage,
+} from "ai";
 
 // Native SDK client for video operations
 function createNativeClient(apiKey: string): OpenRouter {
@@ -55,4 +59,54 @@ export async function generateText(
 		prompt,
 	});
 	return result.text;
+}
+
+// Streaming chat
+export interface ChatStreamOptions {
+	apiKey: string;
+	model: string;
+	systemPrompt: string;
+	messages: CoreMessage[];
+}
+
+export async function* streamChat(options: ChatStreamOptions): AsyncGenerator<{
+	type: "text" | "error" | "done";
+	text?: string;
+	error?: string;
+}> {
+	const { apiKey, model, systemPrompt, messages } = options;
+	const openrouter = createOpenRouter({ apiKey });
+
+	try {
+		const result = aiStreamText({
+			model: openrouter(model),
+			system: systemPrompt,
+			messages,
+		});
+
+		for await (const part of result.fullStream) {
+			switch (part.type) {
+				case "text-delta":
+					yield { type: "text", text: part.text };
+					break;
+				case "error":
+					yield {
+						type: "error",
+						error:
+							part.error instanceof Error
+								? part.error.message
+								: "Unknown error",
+					};
+					break;
+				case "finish":
+					yield { type: "done" };
+					break;
+			}
+		}
+	} catch (error) {
+		yield {
+			type: "error",
+			error: error instanceof Error ? error.message : "Unknown error",
+		};
+	}
 }

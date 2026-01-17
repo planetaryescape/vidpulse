@@ -1,3 +1,4 @@
+import type { CoreMessage } from "ai";
 import type {
 	AnalyzeVideoResponse,
 	CheckApiKeyResponse,
@@ -32,6 +33,7 @@ import {
 	endVideoInSession,
 	getCached,
 	getChannelStats,
+	getChatHistory,
 	getFeedbackForVideo,
 	getFocusSchedule,
 	getLikedChannels,
@@ -44,6 +46,7 @@ import {
 	pauseFocusMode,
 	removeLikedChannel,
 	replaceMemories,
+	saveChatMessage,
 	saveSettings,
 	setCache,
 	setSessionIntent,
@@ -67,11 +70,177 @@ import { debugLog } from "../shared/utils";
 import {
 	generateFromVideo,
 	generateText as openrouterGenerateText,
+	streamChat,
 } from "./openrouter-api";
 
 // Run migrations on startup
 migrateApiKeysToLocal().catch(() => {});
 migrateModelIds().catch(() => {});
+
+// Port-based chat handler for streaming responses
+chrome.runtime.onConnect.addListener((port) => {
+	if (port.name !== "vidpulse-chat") return;
+
+	const keepAliveInterval: ReturnType<typeof setInterval> | null = null;
+
+	port.onDisconnect.addListener(() => {
+		if (keepAliveInterval) clearInterval(keepAliveInterval);
+	});
+
+	port.onMessage.addListener(async (msg) => {
+		if (msg.type === "CHAT_START") {
+			await handleChatStream(port, msg);
+		}
+	});
+});
+
+interface ChatRequest {
+	videoId: string;
+	videoTitle: string;
+	message: string;
+	videoContent: string;
+	analysis: VideoAnalysis;
+}
+
+async function handleChatStream(
+	port: chrome.runtime.Port,
+	request: ChatRequest,
+): Promise<void> {
+	const settings = await getSettings();
+
+	if (!settings.apiKey) {
+		port.postMessage({ type: "error", error: "API key not configured" });
+		return;
+	}
+
+	// Keep-alive during streaming
+	const keepAlive = setInterval(() => {
+		try {
+			port.postMessage({ type: "ping" });
+		} catch {
+			// Port disconnected
+			clearInterval(keepAlive);
+		}
+	}, 20000);
+
+	try {
+		// Get chat history
+		const history = await getChatHistory(request.videoId);
+		const memories = await getMemories();
+
+		// Build messages from history
+		const messages: CoreMessage[] = [];
+		if (history?.messages) {
+			for (const msg of history.messages) {
+				messages.push({
+					role: msg.role,
+					content: msg.content,
+				});
+			}
+		}
+
+		// Add current user message
+		messages.push({
+			role: "user",
+			content: request.message,
+		});
+
+		// Build system prompt
+		const systemPrompt = buildChatSystemPrompt(
+			request.videoContent,
+			request.analysis,
+			settings,
+			memories,
+		);
+
+		// Stream response
+		const chatModel = settings.models.chat || "x-ai/grok-4.1-fast";
+		let fullText = "";
+
+		const stream = streamChat({
+			apiKey: settings.apiKey,
+			model: chatModel,
+			systemPrompt,
+			messages,
+		});
+
+		for await (const part of stream) {
+			switch (part.type) {
+				case "text":
+					fullText += part.text || "";
+					port.postMessage({ type: "text", text: part.text });
+					break;
+				case "error":
+					port.postMessage({ type: "error", error: part.error });
+					break;
+				case "done":
+					break;
+			}
+		}
+
+		// Save messages to history
+		await saveChatMessage(request.videoId, request.videoTitle, {
+			id: crypto.randomUUID(),
+			role: "user",
+			content: request.message,
+			timestamp: Date.now(),
+		});
+
+		if (fullText) {
+			await saveChatMessage(request.videoId, request.videoTitle, {
+				id: crypto.randomUUID(),
+				role: "assistant",
+				content: fullText,
+				timestamp: Date.now(),
+			});
+		}
+
+		port.postMessage({ type: "done" });
+	} catch (error) {
+		port.postMessage({
+			type: "error",
+			error: error instanceof Error ? error.message : "Unknown error",
+		});
+	} finally {
+		clearInterval(keepAlive);
+	}
+}
+
+function buildChatSystemPrompt(
+	videoContent: string,
+	analysis: VideoAnalysis,
+	settings: Settings,
+	memories: MemoryEntry[],
+): string {
+	const memoryContext = buildMemoryContext(memories);
+	const keyPointsStr =
+		analysis.keyPoints
+			?.map((kp) => `- [${kp.timestamp}] ${kp.title}: ${kp.description}`)
+			.join("\n") || "None";
+
+	return `You are a helpful assistant discussing a YouTube video with the user.
+
+VIDEO CONTENT (from AI analysis):
+${videoContent || "No detailed content available."}
+
+VIDEO SUMMARY: ${analysis.summary}
+
+KEY POINTS:
+${keyPointsStr}
+
+TAGS: ${analysis.tags.join(", ")}
+
+${settings.aboutMe ? `USER PROFILE:\n${settings.aboutMe}` : ""}
+${memoryContext}
+
+INSTRUCTIONS:
+- Answer questions about the video content
+- Reference specific timestamps when relevant (format: [MM:SS])
+- Use brave_search tool to find additional information if needed
+- Be concise but thorough
+- If something isn't in the video, say so
+- When citing search results, mention the source`;
+}
 
 // Helper to extract JSON from response (handles markdown code blocks)
 function extractJson(text: string): string {
@@ -722,7 +891,7 @@ async function analyzeVideo(
 	videoUrl: string,
 	videoId: string,
 	tabId?: number,
-): Promise<VideoAnalysis> {
+): Promise<{ analysis: VideoAnalysis; videoContent: string }> {
 	const settings = await getSettings();
 
 	if (!settings.apiKey) {
@@ -833,7 +1002,7 @@ async function analyzeVideo(
 		});
 	}
 
-	return fullAnalysis;
+	return { analysis: fullAnalysis, videoContent: content };
 }
 
 // Brave Search - Related Web Content
@@ -969,10 +1138,23 @@ chrome.runtime.onMessage.addListener(
 						}
 
 						// Analyze video with progressive updates
-						const analysis = await analyzeVideo(videoUrl, videoId, tabId);
+						const { analysis, videoContent } = await analyzeVideo(
+							videoUrl,
+							videoId,
+							tabId,
+						);
 
-						// Cache result
-						await setCache(videoId, analysis);
+						// Cache result with video content
+						await setCache(videoId, analysis, videoContent);
+
+						// Mark setup as complete after first successful analysis
+						const currentSettings = await getSettings();
+						if (!currentSettings.setupComplete) {
+							await saveSettings(
+								{ setupComplete: true },
+								{ skipVersionIncrement: true },
+							);
+						}
 
 						sendResponse({
 							success: true,
@@ -1216,10 +1398,14 @@ chrome.runtime.onMessage.addListener(
 						await clearVideoCache(videoId);
 
 						// Analyze fresh with progressive updates
-						const analysis = await analyzeVideo(videoUrl, videoId, regenTabId);
+						const { analysis, videoContent } = await analyzeVideo(
+							videoUrl,
+							videoId,
+							regenTabId,
+						);
 
-						// Cache new result
-						await setCache(videoId, analysis);
+						// Cache new result with video content
+						await setCache(videoId, analysis, videoContent);
 
 						sendResponse({
 							success: true,
@@ -1426,10 +1612,14 @@ chrome.runtime.onMessage.addListener(
 							);
 
 							// Save with auto-generated flag
-							await saveSettings({
-								aboutMe,
-								aboutMeAutoGenerated: true,
-							});
+							// Skip version increment - already incremented by addMemory
+							await saveSettings(
+								{
+									aboutMe,
+									aboutMeAutoGenerated: true,
+								},
+								{ skipVersionIncrement: true },
+							);
 
 							sendResponse({
 								success: true,
@@ -1472,6 +1662,14 @@ chrome.runtime.onMessage.addListener(
 						sendResponse({
 							success: true,
 						} satisfies UpdateSubscriptionStatusResponse);
+						break;
+					}
+
+					// Chat history retrieval for content script
+					case "GET_CHAT_HISTORY" as MessageType: {
+						const { videoId } = message as unknown as { videoId: string };
+						const history = await getChatHistory(videoId);
+						sendResponse({ history });
 						break;
 					}
 
@@ -1560,10 +1758,18 @@ chrome.action.onClicked.addListener(async (tab) => {
 		try {
 			await chrome.tabs.sendMessage(tab.id, { type: "RE_DETECT" });
 		} catch {
-			// Content script not ready - likely tab opened before extension install/update
-			// Reload the tab to trigger manifest-based injection
-			debugLog("Content script not ready, reloading tab");
-			chrome.tabs.reload(tab.id);
+			// Content script not ready - inject it programmatically
+			debugLog("Content script not ready, injecting programmatically");
+			try {
+				await chrome.scripting.executeScript({
+					target: { tabId: tab.id },
+					files: ["src/content/index.ts"],
+				});
+			} catch (injectError) {
+				// Injection failed - fall back to reload
+				debugLog("Script injection failed, reloading tab:", injectError);
+				chrome.tabs.reload(tab.id);
+			}
 		}
 	} else {
 		// Not on YouTube, open options page

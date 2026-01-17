@@ -3,6 +3,8 @@ import type {
 	BlindSpotAnalysis,
 	CacheEntry,
 	ChannelStats,
+	ChatHistory,
+	ChatMessage,
 	DailyStats,
 	FocusSchedule,
 	LikedChannel,
@@ -212,15 +214,19 @@ function preferencesChanged(
 	return false;
 }
 
-export async function saveSettings(settings: Partial<Settings>): Promise<void> {
+export async function saveSettings(
+	settings: Partial<Settings>,
+	options?: { skipVersionIncrement?: boolean },
+): Promise<void> {
 	// Invalidate cache before saving
 	settingsCache = null;
 
 	const current = await getSettings();
 
 	// Increment version if preferences changed (invalidates cache)
+	// Skip if called from auto-regeneration (already incremented by addMemory)
 	let newVersion = current.preferencesVersion;
-	if (preferencesChanged(current, settings)) {
+	if (!options?.skipVersionIncrement && preferencesChanged(current, settings)) {
 		newVersion = (current.preferencesVersion || 1) + 1;
 	}
 
@@ -287,16 +293,45 @@ export async function getCached(
 export async function setCache(
 	videoId: string,
 	analysis: VideoAnalysis,
+	videoContent?: string,
 ): Promise<void> {
 	const settings = await getSettings();
 	const key = `${CACHE_PREFIX}${videoId}`;
 	const entry: CacheEntry = {
 		videoId,
 		analysis,
+		videoContent,
 		timestamp: Date.now(),
 		preferencesVersion: settings.preferencesVersion,
 	};
 	await chrome.storage.local.set({ [key]: entry });
+}
+
+export async function getCacheEntry(
+	videoId: string,
+): Promise<CacheEntry | null> {
+	const key = `${CACHE_PREFIX}${videoId}`;
+	const result = await chrome.storage.local.get(key);
+	const entry = result[key] as CacheEntry | undefined;
+
+	if (!entry) return null;
+
+	const settings = await getSettings();
+
+	// Check if preferences changed (version mismatch)
+	if (entry.preferencesVersion !== settings.preferencesVersion) {
+		await chrome.storage.local.remove(key);
+		return null;
+	}
+
+	// Check expiry
+	const expiryMs = settings.cacheExpiry * 24 * 60 * 60 * 1000;
+	if (Date.now() - entry.timestamp > expiryMs) {
+		await chrome.storage.local.remove(key);
+		return null;
+	}
+
+	return entry;
 }
 
 export async function clearVideoCache(videoId: string): Promise<void> {
@@ -1160,6 +1195,92 @@ export async function saveBlindSpotAnalysis(
 	await chrome.storage.local.set({ [BLIND_SPOT_KEY]: analysis });
 }
 
+// Chat history storage (local only)
+const CHAT_HISTORY_KEY = "vidpulse_chat_history";
+const MAX_VIDEOS_WITH_CHAT = 200;
+const COMPACT_TO = 150;
+
+export async function getChatHistory(
+	videoId: string,
+): Promise<ChatHistory | null> {
+	const result = await chrome.storage.local.get(CHAT_HISTORY_KEY);
+	const allHistory = (result[CHAT_HISTORY_KEY] || {}) as Record<
+		string,
+		ChatHistory
+	>;
+	return allHistory[videoId] || null;
+}
+
+export async function saveChatMessage(
+	videoId: string,
+	videoTitle: string,
+	message: ChatMessage,
+): Promise<void> {
+	const result = await chrome.storage.local.get(CHAT_HISTORY_KEY);
+	let allHistory = (result[CHAT_HISTORY_KEY] || {}) as Record<
+		string,
+		ChatHistory
+	>;
+
+	const now = Date.now();
+
+	if (!allHistory[videoId]) {
+		allHistory[videoId] = {
+			videoId,
+			videoTitle,
+			messages: [],
+			createdAt: now,
+			updatedAt: now,
+		};
+	}
+
+	allHistory[videoId].messages.push(message);
+	allHistory[videoId].updatedAt = now;
+	if (videoTitle) {
+		allHistory[videoId].videoTitle = videoTitle;
+	}
+
+	// Auto-compact if too many videos
+	allHistory = await compactChatHistoryIfNeeded(allHistory);
+
+	await chrome.storage.local.set({ [CHAT_HISTORY_KEY]: allHistory });
+}
+
+export async function clearChatHistory(videoId: string): Promise<void> {
+	const result = await chrome.storage.local.get(CHAT_HISTORY_KEY);
+	const allHistory = (result[CHAT_HISTORY_KEY] || {}) as Record<
+		string,
+		ChatHistory
+	>;
+
+	delete allHistory[videoId];
+	await chrome.storage.local.set({ [CHAT_HISTORY_KEY]: allHistory });
+}
+
+// Auto-compact: when > MAX_VIDEOS_WITH_CHAT videos, keep COMPACT_TO most recent by updatedAt
+async function compactChatHistoryIfNeeded(
+	allHistory: Record<string, ChatHistory>,
+): Promise<Record<string, ChatHistory>> {
+	const keys = Object.keys(allHistory);
+	if (keys.length <= MAX_VIDEOS_WITH_CHAT) {
+		return allHistory;
+	}
+
+	// Sort by updatedAt descending
+	const sorted = keys.sort(
+		(a, b) => allHistory[b].updatedAt - allHistory[a].updatedAt,
+	);
+
+	// Keep only COMPACT_TO most recent
+	const toKeep = sorted.slice(0, COMPACT_TO);
+	const compacted: Record<string, ChatHistory> = {};
+	for (const key of toKeep) {
+		compacted[key] = allHistory[key];
+	}
+
+	return compacted;
+}
+
 // GDPR compliance functions
 
 /**
@@ -1198,6 +1319,7 @@ export async function exportAllUserData(): Promise<object> {
 		politicalPosition: localResult[POLITICAL_POSITION_KEY] || null,
 		politicalSnapshots: localResult[POLITICAL_SNAPSHOTS_KEY] || {},
 		blindSpots: localResult[BLIND_SPOT_KEY] || null,
+		chatHistory: localResult[CHAT_HISTORY_KEY] || {},
 		session: sessionResult[SESSION_KEY] || null,
 		videoCache: cacheEntries,
 	};
@@ -1227,6 +1349,7 @@ export async function deleteAllUserData(): Promise<void> {
 		POLITICAL_POSITION_KEY,
 		POLITICAL_SNAPSHOTS_KEY,
 		BLIND_SPOT_KEY,
+		CHAT_HISTORY_KEY,
 		...cacheKeys,
 	];
 

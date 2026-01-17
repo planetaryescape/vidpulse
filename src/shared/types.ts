@@ -11,7 +11,8 @@ export type TextModel =
 	| "anthropic/claude-sonnet-4"
 	| "anthropic/claude-haiku-4.5"
 	| "openai/gpt-4.5-preview"
-	| "openai/gpt-4o-mini";
+	| "openai/gpt-4o-mini"
+	| "x-ai/grok-4.1-fast";
 
 // Per-operation model configuration
 export interface ModelConfig {
@@ -21,6 +22,7 @@ export interface ModelConfig {
 	tagGeneration: TextModel;
 	transcriptAnalysis: TextModel;
 	memoryExtraction: TextModel;
+	chat?: TextModel; // Chat with video model
 }
 
 // Timestamped key point from video
@@ -59,6 +61,7 @@ export interface VideoAnalysis {
 export interface CacheEntry {
 	videoId: string;
 	analysis: VideoAnalysis;
+	videoContent?: string; // Raw content from multimodal reading (for chat)
 	timestamp: number;
 	preferencesVersion: number; // invalidate cache when preferences change
 }
@@ -89,6 +92,8 @@ export interface Settings {
 	showChapters: boolean; // show chapters tab and extract key points
 	showRelatedContent: boolean; // show related content tab (Brave Search)
 	showPoliticalAnalysis: boolean; // show political analysis tab and badge
+	// Onboarding
+	setupComplete?: boolean; // true after first successful analysis
 }
 
 // Video source for memory entries (supports multiple sources after merging)
@@ -313,4 +318,36 @@ export interface BlindSpotAnalysis {
 	}>;
 	topicCoverage: number; // 0-100%
 	lastAnalyzed: number;
+}
+
+// Chat message stored in history
+export interface ChatMessage {
+	id: string;
+	role: "user" | "assistant";
+	content: string;
+	timestamp: number;
+	toolCalls?: Array<{
+		toolName: string;
+		args: Record<string, unknown>;
+		result?: unknown;
+	}>;
+}
+
+// Chat history per video
+export interface ChatHistory {
+	videoId: string;
+	videoTitle: string;
+	messages: ChatMessage[];
+	createdAt: number;
+	updatedAt: number;
+}
+
+// Stream chunk types (sent via port)
+export interface ChatStreamPart {
+	type: "text" | "tool-call" | "tool-result" | "error" | "done" | "ping";
+	text?: string;
+	toolName?: string;
+	args?: Record<string, unknown>;
+	result?: unknown;
+	error?: string;
 }
