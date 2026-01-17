@@ -235,7 +235,8 @@ ${memoryContext}
 
 INSTRUCTIONS:
 - Answer questions about the video content
-- Reference specific timestamps when relevant (format: [MM:SS])
+- ALWAYS include timestamps when discussing specific video content (format: [MM:SS] or [H:MM:SS])
+- When mentioning any moment, concept, or quote from the video, include its timestamp in brackets
 - Use brave_search tool to find additional information if needed
 - Be concise but thorough
 - If something isn't in the video, say so

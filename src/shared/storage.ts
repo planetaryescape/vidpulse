@@ -50,7 +50,7 @@ const DEFAULT_SETTINGS: Settings = {
 	showTimelineMarkers: true, // show chapter/note markers on progress bar
 	showChapters: true,
 	showRelatedContent: true,
-	showPoliticalAnalysis: true,
+	showPoliticalAnalysis: false,
 };
 
 const CACHE_PREFIX = "cache_";

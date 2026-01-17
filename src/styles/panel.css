@@ -2173,3 +2173,80 @@
 	opacity: 0.5;
 	cursor: not-allowed;
 }
+
+/* ============================================
+   CHAT MARKDOWN STYLES
+   ============================================ */
+
+.vp-chat-content strong {
+	font-weight: 600;
+	color: var(--vp-text-primary);
+}
+
+.vp-chat-content em {
+	font-style: italic;
+}
+
+.vp-md-inline-code {
+	background: var(--vp-bg-dark);
+	border-radius: 4px;
+	padding: 2px 6px;
+	font-family: "JetBrains Mono", monospace;
+	font-size: 0.9em;
+	color: var(--vp-accent);
+}
+
+.vp-md-code-block {
+	background: var(--vp-bg-dark);
+	border: 1px solid var(--vp-border);
+	border-radius: 6px;
+	padding: 12px;
+	margin: 8px 0;
+	overflow-x: auto;
+}
+
+.vp-md-code-block code {
+	font-family: "JetBrains Mono", monospace;
+	font-size: calc(12px * var(--vp-font-scale));
+	color: var(--vp-text-primary);
+	white-space: pre;
+}
+
+.vp-md-list-item {
+	display: flex;
+	gap: 4px;
+	margin: 4px 0;
+}
+
+.vp-md-bullet {
+	color: var(--vp-text-secondary);
+	flex-shrink: 0;
+}
+
+.vp-md-link {
+	color: var(--vp-accent);
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+.vp-md-link:hover {
+	color: #65b8ff;
+}
+
+.vp-chat-timestamp {
+	background: var(--vp-accent-dim);
+	border: none;
+	border-radius: 4px;
+	color: var(--vp-accent);
+	font-family: "JetBrains Mono", monospace;
+	font-size: 0.9em;
+	font-weight: 500;
+	padding: 2px 6px;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.vp-chat-timestamp:hover {
+	background: var(--vp-accent);
+	color: var(--vp-bg-dark);
+}

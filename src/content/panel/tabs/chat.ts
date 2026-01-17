@@ -1,9 +1,6 @@
 import { getCacheEntry } from "../../../shared/storage";
-import type {
-	ChatHistory,
-	ChatMessage,
-	PanelState,
-} from "../../../shared/types";
+import type { ChatHistory, PanelState } from "../../../shared/types";
+import { renderMarkdown } from "../markdown";
 import { getVideoTitle } from "../video";
 
 // Simplified stream part type (no tool calling for now)
@@ -31,45 +28,6 @@ async function getChatHistoryProxy(
 	});
 }
 
-// Render text with simple formatting using DOM methods (XSS-safe)
-function renderFormattedText(container: HTMLElement, text: string): void {
-	// Clear existing content
-	container.textContent = "";
-
-	// Process text line by line and add formatting
-	const lines = text.split("\n");
-
-	for (let i = 0; i < lines.length; i++) {
-		if (i > 0) {
-			container.appendChild(document.createElement("br"));
-		}
-
-		const line = lines[i];
-		// Split by inline formatting markers and process
-		renderInlineFormatting(container, line);
-	}
-}
-
-// Render inline formatting (bold, italic, code) safely
-function renderInlineFormatting(container: HTMLElement, text: string): void {
-	// Process bold (**text**), italic (*text*), and code (`text`)
-	// Use regex to find patterns but create elements safely
-	const remaining = text;
-	let match: RegExpExecArray | null;
-
-	const patterns = [
-		{ regex: /\*\*([^*]+)\*\*/g, tag: "strong" },
-		{ regex: /\*([^*]+)\*/g, tag: "em" },
-		{ regex: /`([^`]+)`/g, tag: "code" },
-	];
-
-	// Simple approach: render as text for now, could be enhanced
-	// For security, we use textContent which auto-escapes
-	const span = document.createElement("span");
-	span.textContent = text;
-	container.appendChild(span);
-}
-
 function addMessageToUI(
 	container: HTMLElement,
 	msg: { role: string; content: string },
@@ -80,8 +38,12 @@ function addMessageToUI(
 	const content = document.createElement("div");
 	content.className = "vp-chat-content";
 
-	// Both user and assistant messages use textContent (XSS-safe)
-	content.textContent = msg.content;
+	// User messages use textContent, assistant messages use markdown renderer
+	if (msg.role === "assistant") {
+		renderMarkdown(content, msg.content);
+	} else {
+		content.textContent = msg.content;
+	}
 	el.appendChild(content);
 
 	container.appendChild(el);
@@ -107,11 +69,8 @@ function createStreamingMessage(container: HTMLElement): HTMLElement {
 function updateStreamingContent(messageEl: HTMLElement, text: string): void {
 	const content = messageEl.querySelector(".vp-chat-content");
 	if (content) {
-		// Clear and re-render with textContent (XSS-safe)
-		content.textContent = "";
-		const textSpan = document.createElement("span");
-		textSpan.textContent = text;
-		content.appendChild(textSpan);
+		// Clear and re-render with markdown (XSS-safe via DOM methods)
+		renderMarkdown(content as HTMLElement, text);
 
 		const cursor = document.createElement("span");
 		cursor.className = "vp-chat-cursor";
@@ -134,8 +93,7 @@ function showError(messageEl: HTMLElement, error: string): void {
 function finalizeMessage(messageEl: HTMLElement, text: string): void {
 	const content = messageEl.querySelector(".vp-chat-content");
 	if (content) {
-		// Use textContent for safety
-		content.textContent = text;
+		renderMarkdown(content as HTMLElement, text);
 	}
 	messageEl.classList.remove("vp-chat-streaming");
 }

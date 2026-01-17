@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { getCacheEntry } from "../../../../shared/storage";
 import type { ChatHistory, VideoAnalysis } from "../../../../shared/types";
+import { renderMarkdown } from "../../markdown";
 import { getVideoTitle } from "../../video";
 
 interface ChatMessage {
@@ -29,6 +30,29 @@ async function getChatHistoryProxy(
 			},
 		);
 	});
+}
+
+// Renders markdown for assistant messages
+function MessageContent({
+	content,
+	isAssistant,
+}: {
+	content: string;
+	isAssistant: boolean;
+}) {
+	const ref = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (ref.current && isAssistant) {
+			renderMarkdown(ref.current, content);
+		}
+	}, [content, isAssistant]);
+
+	if (!isAssistant) {
+		return <>{content}</>;
+	}
+
+	return <div ref={ref} />;
 }
 
 interface ChatPanelProps {
@@ -173,13 +197,18 @@ export function ChatPanel({ videoId, analysis }: ChatPanelProps) {
 				)}
 				{messages.map((msg, index) => (
 					<div key={index} className={`vp-chat-message vp-chat-${msg.role}`}>
-						<div className="vp-chat-content">{msg.content}</div>
+						<div className="vp-chat-content">
+							<MessageContent
+								content={msg.content}
+								isAssistant={msg.role === "assistant"}
+							/>
+						</div>
 					</div>
 				))}
 				{isStreaming && (
 					<div className="vp-chat-message vp-chat-assistant vp-chat-streaming">
 						<div className="vp-chat-content">
-							<span>{streamingText}</span>
+							<MessageContent content={streamingText} isAssistant />
 							<span className="vp-chat-cursor" />
 						</div>
 					</div>
