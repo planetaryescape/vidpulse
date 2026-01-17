@@ -35,6 +35,8 @@ Get a clear recommendation: Worth It, Maybe, or Skip - personalized to your pref
 ### Chat with Video
 - Ask questions about the video content
 - AI answers based on what it saw in the video
+- Clickable timestamps in responses - jump to any moment mentioned
+- Markdown formatting for clear, readable answers
 - Conversation history saved per video
 - No need to watch - just ask what you want to know
 
