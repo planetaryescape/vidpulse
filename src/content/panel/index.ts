@@ -4,4 +4,4 @@ export {
 	togglePanelVisibility,
 	triggerFeedback,
 	triggerRegenerate,
-} from "./assembly";
+} from "./assembly-preact";

@@ -13,7 +13,9 @@
     "outDir": "dist",
     "rootDir": "src",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": ["chrome"]
+    "types": ["chrome"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact"
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
