@@ -332,21 +332,23 @@ async function readVideoContent(
 	settings: Settings,
 	videoUrl: string,
 ): Promise<string> {
-	const prompt = `Watch this video and provide a detailed description of its content.
-Include:
-- Main topics and themes covered
-- Key points and arguments made
-- Style and tone of presentation
-- Target audience
-- Any notable quotes or moments
+	const prompt = `Summarize this YouTube video concisely:
+- Main topic and key points (bullet points)
+- Tone/style (educational, entertainment, etc.)
+- Notable timestamps with brief descriptions
 
-Provide a thorough transcript-like description that captures the essence of the video.`;
+Keep response under 1000 words.`;
+
+	debugLog("Starting video reading...");
+	const startTime = Date.now();
 
 	const text = await withRetry(
 		async () =>
 			generateFromVideo(apiKey, settings.models.videoReading, videoUrl, prompt),
-		{ retries: 3, delay: 2000 },
+		{ retries: 2, delay: 1000 },
 	);
+
+	debugLog(`Video reading completed in ${Date.now() - startTime}ms`);
 
 	if (!text) {
 		throw new Error("Empty response from video reading");
@@ -893,6 +895,9 @@ async function analyzeVideo(
 	videoId: string,
 	tabId?: number,
 ): Promise<{ analysis: VideoAnalysis; videoContent: string }> {
+	const totalStart = Date.now();
+	debugLog(`Starting analysis for ${videoId}`);
+
 	const settings = await getSettings();
 
 	if (!settings.apiKey) {
@@ -904,26 +909,22 @@ async function analyzeVideo(
 
 	// Step 1: Read video content (multimodal)
 	const content = await readVideoContent(apiKey, settings, videoUrl);
+	debugLog(`Phase 1 video read done: ${Date.now() - totalStart}ms`);
 
-	// Phase 1: Critical path - For You + Summary tabs
+	// Phase 1: Critical path - Summary + Scores (parallel)
+	const phase1Start = Date.now();
 	const [summary, analysisResult] = await Promise.all([
 		generateSummary(apiKey, settings, content),
 		analyzeContent(apiKey, settings, content, memories),
 	]);
-
-	const reason = await generateReason(
-		apiKey,
-		settings,
-		content,
-		analysisResult.scores,
-		analysisResult.verdict,
-		memories,
+	debugLog(
+		`Phase 1 summary+analysis done: ${Date.now() - phase1Start}ms (total: ${Date.now() - totalStart}ms)`,
 	);
 
-	// Build partial analysis for immediate display
+	// Build partial analysis for immediate display (no reason yet)
 	const partialAnalysis: VideoAnalysis = {
 		summary,
-		reason,
+		reason: "", // Phase 2
 		tags: [], // Phase 2
 		scores: analysisResult.scores,
 		verdict: analysisResult.verdict,
@@ -942,9 +943,17 @@ async function analyzeVideo(
 		});
 	}
 
-	// Phase 2: Background - Chapters, Tags, Political analysis
-	// Only make API calls for enabled features
+	// Phase 2: Background - Reason, Chapters, Tags, Political analysis (all parallel)
+	const phase2Start = Date.now();
 	const phase2Promises: Promise<unknown>[] = [
+		generateReason(
+			apiKey,
+			settings,
+			content,
+			analysisResult.scores,
+			analysisResult.verdict,
+			memories,
+		),
 		generateTags(apiKey, settings, content),
 	];
 
@@ -962,13 +971,17 @@ async function analyzeVideo(
 			: Promise.resolve({ hasPoliticalContent: false });
 	phase2Promises.push(politicalPromise);
 
-	const [tags, keyPoints, politicalResult] = (await Promise.all(
+	const [reason, tags, keyPoints, politicalResult] = (await Promise.all(
 		phase2Promises,
 	)) as [
+		string,
 		string[],
 		Awaited<ReturnType<typeof extractKeyPoints>>,
 		Awaited<ReturnType<typeof analyzePoliticalContent>>,
 	];
+	debugLog(
+		`Phase 2 done: ${Date.now() - phase2Start}ms (total: ${Date.now() - totalStart}ms)`,
+	);
 
 	// Build final scores with optional political data
 	const finalScores = {

@@ -511,7 +511,106 @@
 }
 
 /* ============================================
-   COMPACT HEADER
+   HERO VERDICT - Combined verdict + match
+   ============================================ */
+
+.vp-hero-verdict {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 10px 14px;
+	border-radius: 8px;
+	margin-bottom: 8px;
+}
+
+.vp-hero-verdict.vp-hero-worth {
+	background: rgba(34, 197, 94, 0.12);
+	border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.vp-hero-verdict.vp-hero-maybe {
+	background: rgba(234, 179, 8, 0.12);
+	border: 1px solid rgba(234, 179, 8, 0.25);
+}
+
+.vp-hero-verdict.vp-hero-skip {
+	background: rgba(239, 68, 68, 0.12);
+	border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.vp-hero-main {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.vp-hero-icon {
+	font-size: calc(14px * var(--vp-font-scale));
+}
+
+.vp-hero-worth .vp-hero-icon {
+	color: var(--vp-score-high);
+}
+
+.vp-hero-maybe .vp-hero-icon {
+	color: var(--vp-score-mid);
+}
+
+.vp-hero-skip .vp-hero-icon {
+	color: var(--vp-score-low);
+}
+
+.vp-hero-text {
+	font-size: calc(11px * var(--vp-font-scale));
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.vp-hero-worth .vp-hero-text {
+	color: var(--vp-score-high);
+}
+
+.vp-hero-maybe .vp-hero-text {
+	color: var(--vp-score-mid);
+}
+
+.vp-hero-skip .vp-hero-text {
+	color: var(--vp-score-low);
+}
+
+.vp-hero-match {
+	font-size: calc(12px * var(--vp-font-scale));
+	font-weight: 600;
+	font-family: "JetBrains Mono", monospace;
+}
+
+/* ============================================
+   SECONDARY BADGES - Channel + Political
+   ============================================ */
+
+.vp-secondary-badges {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 10px;
+	font-size: calc(11px * var(--vp-font-scale));
+}
+
+.vp-secondary-dot {
+	color: var(--vp-text-muted);
+}
+
+.vp-secondary-political {
+	font-weight: 500;
+}
+
+.vp-secondary-political.neutral {
+	color: var(--vp-text-secondary);
+}
+
+/* ============================================
+   COMPACT HEADER (legacy - kept for reference)
    ============================================ */
 
 .vp-compact-header {
@@ -886,6 +985,68 @@
 	font-size: calc(11px * var(--vp-font-scale));
 	text-transform: uppercase;
 	letter-spacing: 0.05em;
+}
+
+/* ============================================
+   COMPACT FEEDBACK - Icon only, right-aligned
+   ============================================ */
+
+.vp-feedback-compact {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 12px;
+	padding-top: 12px;
+	border-top: 1px solid var(--vp-border);
+}
+
+.vp-feedback-icon-btn {
+	background: var(--vp-bg-elevated);
+	border: 1px solid var(--vp-border);
+	border-radius: 6px;
+	padding: 6px 10px;
+	cursor: pointer;
+	font-size: calc(16px * var(--vp-font-scale));
+	line-height: 1;
+	transition: all 0.2s;
+	opacity: 0.6;
+}
+
+.vp-feedback-icon-btn:hover:not(:disabled) {
+	opacity: 1;
+	transform: scale(1.1);
+}
+
+.vp-feedback-icon-btn:disabled {
+	cursor: default;
+}
+
+.vp-feedback-icon-btn:disabled:not(.active) {
+	opacity: 0.3;
+}
+
+.vp-like-icon-btn:hover:not(:disabled) {
+	border-color: var(--vp-score-high);
+	background: rgba(34, 197, 94, 0.1);
+}
+
+.vp-like-icon-btn.active {
+	opacity: 1;
+	border-color: var(--vp-score-high);
+	background: rgba(34, 197, 94, 0.15);
+	box-shadow: 0 0 8px rgba(34, 197, 94, 0.3);
+}
+
+.vp-dislike-icon-btn:hover:not(:disabled) {
+	border-color: var(--vp-score-low);
+	background: rgba(239, 68, 68, 0.1);
+}
+
+.vp-dislike-icon-btn.active {
+	opacity: 1;
+	border-color: var(--vp-score-low);
+	background: rgba(239, 68, 68, 0.15);
+	box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
 }
 
 /* ============================================

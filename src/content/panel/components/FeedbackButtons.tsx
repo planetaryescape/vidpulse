@@ -20,15 +20,11 @@ export function FeedbackButtons({
 		initialFeedback,
 	);
 	const [isLoading, setIsLoading] = useState(false);
-	const [label, setLabel] = useState(
-		initialFeedback ? "Feedback saved!" : "Was this helpful?",
-	);
 
 	const handleFeedback = async (type: "like" | "dislike") => {
 		if (!analysis || isLoading) return;
 
 		setIsLoading(true);
-		setLabel("Saving...");
 
 		try {
 			const channelInfo = getChannelInfo() || undefined;
@@ -43,13 +39,10 @@ export function FeedbackButtons({
 
 			if (response.success) {
 				setFeedback(type);
-				setLabel("Feedback saved!");
-			} else {
-				setLabel("Failed to save");
-				setIsLoading(false);
 			}
 		} catch {
-			setLabel("Failed to save");
+			// Silently fail
+		} finally {
 			setIsLoading(false);
 		}
 	};
@@ -57,38 +50,33 @@ export function FeedbackButtons({
 	const isDisabled = !!feedback || isLoading;
 
 	return (
-		<div className="vp-feedback">
-			<span className="vp-feedback-label">{label}</span>
-			<div className="vp-feedback-btns">
-				<button
-					type="button"
-					className={`vp-feedback-btn vp-like-btn${feedback === "like" ? " vp-feedback-active" : ""}`}
-					title="I liked this video"
-					disabled={isDisabled}
-					onClick={(e) => {
-						e.preventDefault();
-						e.stopPropagation();
-						handleFeedback("like");
-					}}
-				>
-					<span className="vp-feedback-icon">{"\u2713"}</span>
-					<span className="vp-feedback-text">Liked</span>
-				</button>
-				<button
-					type="button"
-					className={`vp-feedback-btn vp-dislike-btn${feedback === "dislike" ? " vp-feedback-active" : ""}`}
-					title="I didn't like this video"
-					disabled={isDisabled}
-					onClick={(e) => {
-						e.preventDefault();
-						e.stopPropagation();
-						handleFeedback("dislike");
-					}}
-				>
-					<span className="vp-feedback-icon">{"\u2717"}</span>
-					<span className="vp-feedback-text">Skip</span>
-				</button>
-			</div>
+		<div className="vp-feedback-compact">
+			<button
+				type="button"
+				className={`vp-feedback-icon-btn vp-like-icon-btn${feedback === "like" ? " active" : ""}`}
+				title={feedback === "like" ? "Liked" : "I liked this video"}
+				disabled={isDisabled}
+				onClick={(e) => {
+					e.preventDefault();
+					e.stopPropagation();
+					handleFeedback("like");
+				}}
+			>
+				{"\uD83D\uDC4D"}
+			</button>
+			<button
+				type="button"
+				className={`vp-feedback-icon-btn vp-dislike-icon-btn${feedback === "dislike" ? " active" : ""}`}
+				title={feedback === "dislike" ? "Skipped" : "I didn't like this video"}
+				disabled={isDisabled}
+				onClick={(e) => {
+					e.preventDefault();
+					e.stopPropagation();
+					handleFeedback("dislike");
+				}}
+			>
+				{"\uD83D\uDC4E"}
+			</button>
 		</div>
 	);
 }
