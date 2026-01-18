@@ -1,6 +1,6 @@
 {
   "name": "vidpulse",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "AI-powered YouTube video analysis - know if it's worth your time before watching",
   "type": "module",
   "scripts": {
