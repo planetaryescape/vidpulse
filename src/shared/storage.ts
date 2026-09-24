@@ -19,18 +19,16 @@ import type {
 	TextModel,
 	VideoAnalysis,
 	VideoFeedback,
-	VideoModel,
 	VideoNote,
 	VideoSource,
 } from "./types";
 
 const DEFAULT_MODELS: ModelConfig = {
-	videoReading: "google/gemini-3-flash-preview",
-	summarization: "google/gemini-3-flash-preview",
-	recommendationReasoning: "google/gemini-3-flash-preview",
-	tagGeneration: "google/gemini-3-flash-preview",
-	transcriptAnalysis: "google/gemini-3-flash-preview",
-	memoryExtraction: "google/gemini-3-flash-preview",
+	summarization: "google/gemini-2.5-flash",
+	recommendationReasoning: "google/gemini-2.5-flash",
+	tagGeneration: "google/gemini-2.5-flash",
+	transcriptAnalysis: "google/gemini-2.5-flash",
+	memoryExtraction: "google/gemini-2.5-flash",
 };
 
 const DEFAULT_SETTINGS: Settings = {
@@ -143,9 +141,6 @@ export async function migrateModelIds(): Promise<void> {
 
 	if (needsMigration) {
 		const fixedModels: ModelConfig = {
-			videoReading: fixModelId(
-				models.videoReading || DEFAULT_MODELS.videoReading,
-			) as VideoModel,
 			summarization: fixModelId(
 				models.summarization || DEFAULT_MODELS.summarization,
 			) as TextModel,
@@ -173,6 +168,21 @@ export async function migrateModelIds(): Promise<void> {
 
 // In-memory settings cache to avoid repeated storage reads
 let settingsCache: Settings | null = null;
+
+function invalidateSettingsCache(): void {
+	settingsCache = null;
+}
+
+if (typeof chrome !== "undefined" && chrome.storage?.onChanged) {
+	chrome.storage.onChanged.addListener((changes, areaName) => {
+		if (
+			(areaName === "sync" && "settings" in changes) ||
+			(areaName === "local" && API_KEYS_KEY in changes)
+		) {
+			invalidateSettingsCache();
+		}
+	});
+}
 
 // Settings (synced across devices, except API keys which are local-only)
 export async function getSettings(): Promise<Settings> {
@@ -219,7 +229,7 @@ export async function saveSettings(
 	options?: { skipVersionIncrement?: boolean },
 ): Promise<void> {
 	// Invalidate cache before saving
-	settingsCache = null;
+	invalidateSettingsCache();
 
 	const current = await getSettings();
 
@@ -259,7 +269,7 @@ export async function saveSettings(
 	]);
 
 	// Invalidate cache after saving to ensure fresh data on next read
-	settingsCache = null;
+	invalidateSettingsCache();
 }
 
 // Cache (local only)
@@ -1359,7 +1369,7 @@ export async function deleteAllUserData(): Promise<void> {
 	]);
 
 	// Clear settings cache
-	settingsCache = null;
+	invalidateSettingsCache();
 }
 
 /**
@@ -1374,5 +1384,5 @@ export async function deleteAccount(): Promise<void> {
 	]);
 
 	// Clear settings cache
-	settingsCache = null;
+	invalidateSettingsCache();
 }

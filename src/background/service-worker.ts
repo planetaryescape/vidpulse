@@ -68,10 +68,11 @@ import type {
 } from "../shared/types";
 import { debugLog } from "../shared/utils";
 import {
-	generateFromVideo,
 	generateText as openrouterGenerateText,
 	streamChat,
+	validateApiKey as validateOpenRouterApiKey,
 } from "./openrouter-api";
+import { fetchTranscript } from "./youtube-transcript";
 
 // Run migrations on startup
 migrateApiKeysToLocal().catch(() => {});
@@ -220,7 +221,7 @@ function buildChatSystemPrompt(
 
 	return `You are a helpful assistant discussing a YouTube video with the user.
 
-VIDEO CONTENT (from AI analysis):
+VIDEO TRANSCRIPT:
 ${videoContent || "No detailed content available."}
 
 VIDEO SUMMARY: ${analysis.summary}
@@ -327,34 +328,20 @@ function buildMemoryContext(memories: MemoryEntry[]): string {
 	return parts.join("");
 }
 
-async function readVideoContent(
-	apiKey: string,
-	settings: Settings,
-	videoUrl: string,
-): Promise<string> {
-	const prompt = `Summarize this YouTube video concisely:
-- Main topic and key points (bullet points)
-- Tone/style (educational, entertainment, etc.)
-- Notable timestamps with brief descriptions
+async function readVideoContent(videoUrl: string): Promise<string> {
+	const videoIdMatch = videoUrl.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+	if (!videoIdMatch) throw new Error("Invalid YouTube URL");
 
-Keep response under 1000 words.`;
-
-	debugLog("Starting video reading...");
+	debugLog("Fetching YouTube transcript...");
 	const startTime = Date.now();
 
-	const text = await withRetry(
-		async () =>
-			generateFromVideo(apiKey, settings.models.videoReading, videoUrl, prompt),
-		{ retries: 2, delay: 1000 },
+	const result = await fetchTranscript(videoIdMatch[1]);
+
+	debugLog(
+		`Transcript fetched in ${Date.now() - startTime}ms (${result.segments.length} segments, lang=${result.language})`,
 	);
 
-	debugLog(`Video reading completed in ${Date.now() - startTime}ms`);
-
-	if (!text) {
-		throw new Error("Empty response from video reading");
-	}
-
-	return text;
+	return result.fullText;
 }
 
 async function generateSummary(
@@ -907,9 +894,9 @@ async function analyzeVideo(
 	const apiKey = settings.apiKey;
 	const memories = await getMemories();
 
-	// Step 1: Read video content (multimodal)
-	const content = await readVideoContent(apiKey, settings, videoUrl);
-	debugLog(`Phase 1 video read done: ${Date.now() - totalStart}ms`);
+	// Step 1: Fetch transcript (free — no API call)
+	const content = await readVideoContent(videoUrl);
+	debugLog(`Phase 1 transcript done: ${Date.now() - totalStart}ms`);
 
 	// Phase 1: Critical path - Summary + Scores (parallel)
 	const phase1Start = Date.now();
@@ -1183,40 +1170,30 @@ chrome.runtime.onMessage.addListener(
 							sendResponse({ hasKey: false } satisfies CheckApiKeyResponse);
 							break;
 						}
-						// Validate key actually works with OpenRouter
-						try {
-							await openrouterGenerateText(
-								settings.apiKey,
-								"google/gemini-3-flash-preview",
-								"Say OK",
-							);
+
+						const validation = await validateOpenRouterApiKey(settings.apiKey);
+						if (validation.valid) {
 							sendResponse({ hasKey: true } satisfies CheckApiKeyResponse);
-						} catch {
-							// Key exists but invalid - treat as no key
+						} else if (validation.authError) {
 							sendResponse({
 								hasKey: false,
 								invalid: true,
 							} satisfies CheckApiKeyResponse);
+						} else {
+							sendResponse({ hasKey: true } satisfies CheckApiKeyResponse);
 						}
 						break;
 					}
 
 					case MessageType.VALIDATE_API_KEY: {
 						const { apiKey } = message;
-						try {
-							await openrouterGenerateText(
-								apiKey,
-								"google/gemini-3-flash-preview",
-								"Hi",
-							);
+						const validation = await validateOpenRouterApiKey(apiKey);
+						if (validation.valid) {
 							sendResponse({ valid: true } satisfies ValidateApiKeyResponse);
-						} catch (error) {
-							const errorMessage =
-								error instanceof Error ? error.message : "Unknown error";
-							// Show actual error to help user diagnose
+						} else {
 							sendResponse({
 								valid: false,
-								error: errorMessage,
+								error: validation.error || "Invalid API key",
 							} satisfies ValidateApiKeyResponse);
 						}
 						break;

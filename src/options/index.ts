@@ -26,7 +26,6 @@ import type {
 	PoliticalSnapshot,
 	Settings,
 	TextModel,
-	VideoModel,
 } from "../shared/types";
 
 // DOM elements - API Config
@@ -76,9 +75,6 @@ const gettingStartedCard = document.getElementById(
 ) as HTMLDivElement;
 
 // DOM elements - Model selectors
-const modelVideoReadingSelect = document.getElementById(
-	"modelVideoReading",
-) as HTMLSelectElement;
 const modelSummarizationSelect = document.getElementById(
 	"modelSummarization",
 ) as HTMLSelectElement;
@@ -642,7 +638,6 @@ async function loadSettings(): Promise<void> {
 	cacheExpiryInput.value = String(settings.cacheExpiry || 365);
 
 	// Model selectors
-	modelVideoReadingSelect.value = settings.models.videoReading;
 	modelSummarizationSelect.value = settings.models.summarization;
 	modelReasoningSelect.value = settings.models.recommendationReasoning;
 	modelTagsSelect.value = settings.models.tagGeneration;
@@ -853,7 +848,6 @@ async function handleClearBrave(): Promise<void> {
 
 async function handleSaveModels(): Promise<void> {
 	const models = {
-		videoReading: modelVideoReadingSelect.value as VideoModel,
 		summarization: modelSummarizationSelect.value as TextModel,
 		recommendationReasoning: modelReasoningSelect.value as TextModel,
 		tagGeneration: modelTagsSelect.value as TextModel,

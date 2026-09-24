@@ -1,13 +1,9 @@
-// Video-capable models (Gemini only - multimodal required for YouTube URLs)
-export type VideoModel =
+// Text models (any provider via OpenRouter)
+export type TextModel =
 	| "google/gemini-3-flash-preview"
 	| "google/gemini-2.5-flash"
 	| "google/gemini-2.0-flash-001"
-	| "google/gemini-2.5-pro";
-
-// Text models (any provider via OpenRouter)
-export type TextModel =
-	| VideoModel
+	| "google/gemini-2.5-pro"
 	| "anthropic/claude-sonnet-4"
 	| "anthropic/claude-haiku-4.5"
 	| "openai/gpt-4.5-preview"
@@ -16,7 +12,6 @@ export type TextModel =
 
 // Per-operation model configuration
 export interface ModelConfig {
-	videoReading: VideoModel; // Must be Gemini (video-capable)
 	summarization: TextModel;
 	recommendationReasoning: TextModel;
 	tagGeneration: TextModel;
@@ -61,7 +56,7 @@ export interface VideoAnalysis {
 export interface CacheEntry {
 	videoId: string;
 	analysis: VideoAnalysis;
-	videoContent?: string; // Raw content from multimodal reading (for chat)
+	videoContent?: string; // Transcript text (for chat)
 	timestamp: number;
 	preferencesVersion: number; // invalidate cache when preferences change
 }

@@ -1,53 +1,78 @@
-// OpenRouter API wrapper
-// - Video: Native @openrouter/sdk (for video_url support)
-// - Text: Vercel AI SDK (cleaner API)
+// OpenRouter API wrapper — Vercel AI SDK
 
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { OpenRouter } from "@openrouter/sdk";
 import {
 	generateText as aiGenerateText,
 	streamText as aiStreamText,
 	type CoreMessage,
 } from "ai";
 
-// Native SDK client for video operations
-function createNativeClient(apiKey: string): OpenRouter {
-	return new OpenRouter({ apiKey });
+const OPENROUTER_KEY_URL = "https://openrouter.ai/api/v1/key";
+
+interface OpenRouterErrorBody {
+	error?: { message?: string } | string;
+	message?: string;
 }
 
-// Video analysis - uses native SDK for video_url support
-export async function generateFromVideo(
-	apiKey: string,
-	model: string,
-	videoUrl: string,
-	prompt: string,
+export interface ApiKeyValidationResult {
+	valid: boolean;
+	authError?: boolean;
+	error?: string;
+}
+
+async function getOpenRouterErrorMessage(
+	response: Response,
+	fallback: string,
 ): Promise<string> {
-	const client = createNativeClient(apiKey);
-	const response = await client.chat.send({
-		model,
-		messages: [
-			{
-				role: "user",
-				content: [
-					{ type: "text", text: prompt },
-					{ type: "video_url", videoUrl: { url: videoUrl } },
-				],
-			},
-		],
-	});
-	const content = response.choices?.[0]?.message?.content;
-	// Content can be string or array of content items
-	if (typeof content === "string") return content;
-	if (Array.isArray(content)) {
-		return content
-			.filter((item) => item.type === "text")
-			.map((item) => ("text" in item ? item.text : ""))
-			.join("");
+	try {
+		const body = (await response.json()) as OpenRouterErrorBody;
+		if (typeof body.error === "string") {
+			return body.error;
+		}
+		return body.error?.message || body.message || fallback;
+	} catch {
+		return fallback;
 	}
-	return "";
 }
 
-// Text operations - uses Vercel AI SDK for cleaner API
+export async function validateApiKey(
+	apiKey: string,
+): Promise<ApiKeyValidationResult> {
+	try {
+		const response = await fetch(OPENROUTER_KEY_URL, {
+			headers: {
+				Authorization: `Bearer ${apiKey}`,
+			},
+		});
+
+		if (response.ok) {
+			return { valid: true };
+		}
+
+		if (response.status === 401 || response.status === 403) {
+			return {
+				valid: false,
+				authError: true,
+				error: "Invalid OpenRouter API key",
+			};
+		}
+
+		return {
+			valid: false,
+			error: await getOpenRouterErrorMessage(
+				response,
+				`OpenRouter API error: ${response.status}`,
+			),
+		};
+	} catch {
+		return {
+			valid: false,
+			error: "Network error - check connection",
+		};
+	}
+}
+
+// Text operations
 export async function generateText(
 	apiKey: string,
 	model: string,
