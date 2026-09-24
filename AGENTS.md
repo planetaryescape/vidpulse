@@ -1,6 +1,4 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+# AGENTS.md
 
 ## Build Commands
 
@@ -66,10 +64,7 @@ Content script receives `ANALYSIS_PARTIAL` after Phase 1, `ANALYSIS_COMPLETE` af
 - Video overlay: inject into `#movie_player`, syncs with `ytp-autohide`
 - Panel: prepend to `#secondary` sidebar
 
-## Tech Stack
+## External services
 
-- Bun, TypeScript, Vite, @crxjs/vite-plugin
-- @openrouter/sdk + @openrouter/ai-sdk-provider (AI)
-- Brave Search API (related content)
-- Vitest (testing), Biome (linting)
-- Chrome Extension APIs (Manifest V3)
+- OpenRouter (analysis pipeline)
+- Brave Search API (related content, `searchBrave()` in `service-worker.ts`)
